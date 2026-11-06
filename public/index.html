@@ -5,9 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cartelera Showcase Belgrano • Horarios Oficiales</title>
   
-  <meta name="description" content="Cartelera y horarios en vivo de Showcase Belgrano (Monroe 1750, CABA).">
-  <meta name="keywords" content="Cartelera Showcase Belgrano, cine belgrano, cartelera showcase belgrano, horarios cine belgrano">
-  <meta name="robots" content="index, follow">
+  <meta name="description" content="Cartelera completa y horarios en vivo de Showcase Belgrano (Monroe 1750, CABA). Consultá funciones de hoy en 2D, 3D, subtituladas y dobladas al instante.">
+  <meta name="keywords" content="Cartelera Showcase Belgrano, cine belgrano, cartelera showcase belgrano, horarios cine belgrano, showcase monroe 1750, peliculas belgrano">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="googlebot" content="index, follow">
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://cartelerashowcasebelgrano.vercel.app/">
   
   <!-- Web App & PWA -->
   <meta name="theme-color" content="#0c0d10">
@@ -19,27 +23,38 @@
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <link rel="apple-touch-icon" href="/icon.svg">
   
-  <!-- Open Graph -->
+  <!-- Open Graph / WhatsApp / Facebook -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Showcase Belgrano • Cartelera y Horarios Oficiales">
-  <meta property="og:description" content="Cartelera y horarios en vivo de Showcase Belgrano.">
-  <meta property="og:url" content="https://entradas.todoshowcase.com/showcase/">
-  <meta property="og:image" content="/icon.svg">
+  <meta property="og:site_name" content="Cartelera Showcase Belgrano">
+  <meta property="og:title" content="Cartelera Showcase Belgrano • Horarios Oficiales">
+  <meta property="og:description" content="Cartelera completa y horarios en vivo de Showcase Belgrano (Monroe 1750, CABA). Consultá funciones en 2D, 3D, subtituladas y dobladas.">
+  <meta property="og:url" content="https://cartelerashowcasebelgrano.vercel.app/">
+  <meta property="og:image" content="https://cartelerashowcasebelgrano.vercel.app/icon.svg">
+  <meta property="og:locale" content="es_AR">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Cartelera Showcase Belgrano • Horarios Oficiales">
+  <meta name="twitter:description" content="Cartelera completa y horarios en vivo de Showcase Belgrano (Monroe 1750, CABA).">
+  <meta name="twitter:image" content="https://cartelerashowcasebelgrano.vercel.app/icon.svg">
 
   <!-- Clean, Zero-CDN Native Stylesheet -->
   <link rel="stylesheet" href="/style.css?v=2">
 
-  <!-- Structured Data -->
+  <!-- Structured Data (JSON-LD) for Search Engines -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "MovieTheater",
     "name": "Showcase Cinemas Belgrano",
+    "url": "https://cartelerashowcasebelgrano.vercel.app/",
+    "sameAs": "https://entradas.todoshowcase.com/showcase/",
     "address": {
       "@type": "PostalAddress",
       "streetAddress": "Monroe 1750",
       "addressLocality": "Belgrano",
       "addressRegion": "Ciudad Autónoma de Buenos Aires",
+      "postalCode": "C1428",
       "addressCountry": "AR"
     },
     "geo": {
@@ -47,7 +62,9 @@
       "latitude": -34.5574,
       "longitude": -58.4526
     },
-    "telephone": "+54 11 4788-0000"
+    "telephone": "+54 11 4788-0000",
+    "priceRange": "$$",
+    "currenciesAccepted": "ARS"
   }
   </script>
 </head>
@@ -250,10 +267,19 @@
   <!-- Vercel Web Analytics & Speed Insights (Production) -->
   <script>
     if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+      // Official Vercel Web Analytics tracker
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
-      const a = document.createElement('script'); a.defer = true; a.src = '/_vercel/insights/script.js'; document.head.appendChild(a);
+      const va = document.createElement('script');
+      va.defer = true;
+      va.src = 'https://va.vercel-scripts.com/v1/script.js';
+      document.head.appendChild(va);
+
+      // Official Vercel Speed Insights tracker
       window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-      const s = document.createElement('script'); s.defer = true; s.src = '/_vercel/speed-insights/script.js'; document.head.appendChild(s);
+      const si = document.createElement('script');
+      si.defer = true;
+      si.src = '/_vercel/speed-insights/script.js';
+      document.head.appendChild(si);
     }
   </script>
 </body>

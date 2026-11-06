@@ -1,2 +1,5 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://cartelerashowcasebelgrano.vercel.app/sitemap.xml
+
