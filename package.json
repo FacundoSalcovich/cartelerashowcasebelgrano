@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Cartelera y horarios en vivo de Showcase Belgrano (Monroe 1750, CABA)",
-  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"

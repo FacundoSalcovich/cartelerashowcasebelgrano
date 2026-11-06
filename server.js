@@ -34,7 +34,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // API Route
-  if (pathname === '/api/cartelera') {
+  if (pathname === '/api/cartelera' || pathname === '/api/cartelera.js') {
     try {
       const dateParam = parsedUrl.searchParams.get('date');
       const data = await getCarteleraBelgrano(dateParam);
