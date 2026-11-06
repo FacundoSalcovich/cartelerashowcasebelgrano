@@ -284,6 +284,12 @@ button, input, select {
   transition: border-color 0.15s ease;
 }
 
+@media (max-width: 768px) {
+  .search-input {
+    font-size: 16px; /* Prevents iOS Safari from auto-zooming the viewport on focus */
+  }
+}
+
 .search-input::placeholder {
   color: var(--text-tertiary);
 }
