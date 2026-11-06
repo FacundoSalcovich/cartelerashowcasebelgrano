@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="32" fill="#0c0d10"/>
+  <rect x="12" y="12" width="488" height="488" rx="24" fill="none" stroke="#22252d" stroke-width="12"/>
+  
+  <!-- Modern Geometric Ticket / Film Frame -->
+  <g transform="translate(116, 116)" fill="none" stroke="#f4f5f7" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="0" y="20" width="280" height="240" rx="12" fill="#131519" />
+    <line x1="0" y1="90" x2="280" y2="90" stroke-dasharray="16 16" />
+    <!-- Perforations -->
+    <circle cx="36" cy="55" r="14" fill="#f4f5f7" stroke="none" />
+    <circle cx="140" cy="55" r="14" fill="#f4f5f7" stroke="none" />
+    <circle cx="244" cy="55" r="14" fill="#f4f5f7" stroke="none" />
+    <!-- Play Triangle -->
+    <polygon points="120,135 180,170 120,205" fill="#f4f5f7" stroke="none" />
+  </g>
+</svg>

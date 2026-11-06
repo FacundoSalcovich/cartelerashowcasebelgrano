@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cartelera Showcase Belgrano • Horarios Oficiales</title>
+  
+  <meta name="description" content="Cartelera y horarios en vivo de Showcase Belgrano (Monroe 1750, CABA).">
+  <meta name="keywords" content="Cartelera Showcase Belgrano, cine belgrano, cartelera showcase belgrano, horarios cine belgrano">
+  <meta name="robots" content="index, follow">
+  
+  <!-- Web App & PWA -->
+  <meta name="theme-color" content="#0c0d10">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Cartelera Showcase Belgrano">
+  
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Showcase Belgrano • Cartelera y Horarios Oficiales">
+  <meta property="og:description" content="Cartelera y horarios en vivo de Showcase Belgrano.">
+  <meta property="og:url" content="https://entradas.todoshowcase.com/showcase/">
+  <meta property="og:image" content="/icon.svg">
+
+  <!-- Clean, Zero-CDN Native Stylesheet -->
+  <link rel="stylesheet" href="/style.css">
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "MovieTheater",
+    "name": "Showcase Cinemas Belgrano",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Monroe 1750",
+      "addressLocality": "Belgrano",
+      "addressRegion": "Ciudad Autónoma de Buenos Aires",
+      "addressCountry": "AR"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": -34.5574,
+      "longitude": -58.4526
+    },
+    "telephone": "+54 11 4788-0000"
+  }
+  </script>
+</head>
+<body>
+
+  <!-- Minimalist Clean Header (matches footer style) -->
+  <header class="site-header">
+    <div class="container">
+      <div class="header-inner">
+        <div class="brand-section">
+          <div class="brand-icon-box" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+              <line x1="7" y1="2" x2="7" y2="22"></line>
+              <line x1="17" y1="2" x2="17" y2="22"></line>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <line x1="2" y1="7" x2="7" y2="7"></line>
+              <line x1="2" y1="17" x2="7" y2="17"></line>
+              <line x1="17" y1="17" x2="22" y2="17"></line>
+              <line x1="17" y1="7" x2="22" y2="7"></line>
+            </svg>
+          </div>
+          <div class="brand-info">
+            <h1>Showcase Belgrano</h1>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Date selector horizontal tabs -->
+    <nav class="dates-nav-wrapper" aria-label="Seleccionar fecha de funciones">
+      <div class="container">
+        <div class="dates-nav" id="dateTabs" role="tablist">
+          <!-- Injected via app.js -->
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Filter & Search Toolbar -->
+  <section class="toolbar-section" aria-label="Filtros y búsqueda">
+    <div class="container">
+      <div class="toolbar-grid">
+        <!-- Search bar (Cleaned up, no keyboard shortcuts text) -->
+        <div class="search-wrapper">
+          <span class="search-icon" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input type="search" 
+                 id="searchInput" 
+                 class="search-input" 
+                 placeholder="Buscar película por título..." 
+                 aria-label="Buscar película por título"
+                 autocomplete="off" 
+                 spellcheck="false">
+          <button type="button" id="searchClearBtn" class="search-clear-btn" aria-label="Limpiar búsqueda" title="Limpiar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Modern Filter Pills Row (Option 2: Airbnb / Flights dropdown pills) -->
+        <div class="filter-pills-row">
+          <!-- Dropdown 1: Idioma -->
+          <div class="filter-dropdown-wrapper" id="dropdownLangWrapper">
+            <button type="button" class="filter-pill-btn" id="pillLangBtn" aria-expanded="false" aria-haspopup="true">
+              <span class="filter-pill-label" id="pillLangLabel">Idioma: Todos</span>
+              <span class="filter-pill-arrow" aria-hidden="true">▾</span>
+            </button>
+            <div class="filter-menu" id="menuLang" role="menu">
+              <button type="button" class="filter-menu-item is-selected" data-filter="language" data-val="all" role="menuitem">
+                <span>Todos los idiomas</span>
+                <span class="filter-menu-check">✓</span>
+              </button>
+              <button type="button" class="filter-menu-item" data-filter="language" data-val="sub" role="menuitem">
+                <span>Subtitulada</span>
+                <span class="filter-menu-check"></span>
+              </button>
+              <button type="button" class="filter-menu-item" data-filter="language" data-val="dob" role="menuitem">
+                <span>Doblada (Español)</span>
+                <span class="filter-menu-check"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dropdown 2: Horario -->
+          <div class="filter-dropdown-wrapper" id="dropdownTimeWrapper">
+            <button type="button" class="filter-pill-btn" id="pillTimeBtn" aria-expanded="false" aria-haspopup="true">
+              <span class="filter-pill-label" id="pillTimeLabel">Horario: Cualquier hora</span>
+              <span class="filter-pill-arrow" aria-hidden="true">▾</span>
+            </button>
+            <div class="filter-menu" id="menuTime" role="menu">
+              <button type="button" class="filter-menu-item is-selected" data-filter="timeBand" data-val="all" role="menuitem">
+                <span>Cualquier hora</span>
+                <span class="filter-menu-check">✓</span>
+              </button>
+              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="15" role="menuitem">
+                <span>Desde 15:00 hs</span>
+                <span class="filter-menu-check"></span>
+              </button>
+              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="18" role="menuitem">
+                <span>Desde 18:00 hs</span>
+                <span class="filter-menu-check"></span>
+              </button>
+              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="20" role="menuitem">
+                <span>Desde 20:00 hs</span>
+                <span class="filter-menu-check"></span>
+              </button>
+              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="22" role="menuitem">
+                <span>Desde 22:00 hs</span>
+                <span class="filter-menu-check"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dropdown 3: Formato -->
+          <div class="filter-dropdown-wrapper" id="dropdownFormatWrapper">
+            <button type="button" class="filter-pill-btn" id="pillFormatBtn" aria-expanded="false" aria-haspopup="true">
+              <span class="filter-pill-label" id="pillFormatLabel">Formato: 2D y 3D</span>
+              <span class="filter-pill-arrow" aria-hidden="true">▾</span>
+            </button>
+            <div class="filter-menu" id="menuFormat" role="menu">
+              <button type="button" class="filter-menu-item is-selected" data-filter="format" data-val="all" role="menuitem">
+                <span>2D y 3D</span>
+                <span class="filter-menu-check">✓</span>
+              </button>
+              <button type="button" class="filter-menu-item" data-filter="format" data-val="2d" role="menuitem">
+                <span>Solo 2D</span>
+                <span class="filter-menu-check"></span>
+              </button>
+              <button type="button" class="filter-menu-item" data-filter="format" data-val="3d" role="menuitem">
+                <span>Solo 3D</span>
+                <span class="filter-menu-check"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Restablecer filtros (solo visible cuando hay filtros activos) -->
+          <button type="button" id="clearAllFiltersBtn" class="btn-clear-filters" style="display: none;" title="Restablecer filtros">
+            ✕ Restablecer
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Movie Billboard Grid -->
+  <main class="billboard-main">
+    <div class="container">
+      <div class="movie-grid" id="movieGrid" aria-live="polite">
+        <!-- Injected via app.js -->
+      </div>
+
+      <!-- Stats Bar (Abajo de todo) -->
+      <div class="stats-banner" aria-live="polite">
+        <div id="resultsCount">Consultando cartelera oficial...</div>
+        <div class="stats-disclaimer">Las funciones pasadas no se muestran</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Movie Detail Modal / Sheet -->
+  <div id="movieModal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="modalMovieTitle">
+    <div class="modal-content" role="document">
+      <button type="button" id="modalCloseBtn" class="modal-close-btn" aria-label="Cerrar ficha">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div class="modal-body" id="modalBody">
+        <!-- Injected dynamically on click -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Clean Minimalist Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-meta">
+          <strong>Showcase Cinemas Belgrano</strong>
+          <span>Monroe 1750, Ciudad Autónoma de Buenos Aires • Horarios oficiales</span>
+        </div>
+        <div class="footer-links">
+          <a href="https://entradas.todoshowcase.com/showcase/" target="_blank" rel="noopener noreferrer" class="footer-link">Sitio oficial Showcase</a>
+          <a href="https://www.google.com/maps/search/?api=1&query=Showcase+Cinemas+Belgrano+Monroe+1750" target="_blank" rel="noopener noreferrer" class="footer-link">Cómo llegar (Google Maps)</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/app.js" defer></script>
+
+  <!-- Vercel Web Analytics & Speed Insights (Production) -->
+  <script>
+    if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+      const a = document.createElement('script'); a.defer = true; a.src = '/_vercel/insights/script.js'; document.head.appendChild(a);
+      window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+      const s = document.createElement('script'); s.defer = true; s.src = '/_vercel/speed-insights/script.js'; document.head.appendChild(s);
+    }
+  </script>
+</body>
+</html>
