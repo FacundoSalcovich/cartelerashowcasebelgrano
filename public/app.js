@@ -265,6 +265,15 @@ function selectToday() {
   if (firstTab) firstTab.click();
 }
 
+function selectTomorrow() {
+  const tabs = document.querySelectorAll('.date-tab');
+  if (tabs && tabs.length > 1) {
+    tabs[1].click();
+  }
+}
+window.selectToday = selectToday;
+window.selectTomorrow = selectTomorrow;
+
 /**
  * Fetches billboard data for selectedDate and selectedCinema
  */
@@ -488,6 +497,19 @@ function renderBillboard() {
             <p class="state-desc">Para la fecha seleccionada no hay funciones${filterDesc ? ` en formato ${filterDesc}` : ''}.</p>
             <button type="button" class="btn-secondary" onclick="resetAllFilters()" style="margin-top: 8px;">
               Restablecer filtros
+            </button>
+          </div>
+        `;
+      } else if (isToday) {
+        container.innerHTML = `
+          <div class="state-message" style="grid-column: 1 / -1;">
+            <div class="state-icon-box">
+              ${ICONS.clock}
+            </div>
+            <h3 class="state-title">Ya no quedan funciones por hoy</h3>
+            <p class="state-desc">Todas las funciones programadas para el día de hoy ya comenzaron o finalizaron. Podés consultar la cartelera de mañana.</p>
+            <button type="button" class="btn-secondary" onclick="selectTomorrow()" style="margin-top: 8px;">
+              Ver funciones de mañana
             </button>
           </div>
         `;
@@ -851,9 +873,17 @@ function updateStats(moviesCount, functionsCount) {
     return;
   }
 
-  // Active filter with no results
+  // Empty results (filters or no functions left)
   if (moviesCount === 0) {
-    countEl.textContent = 'No hay funciones para el filtro seleccionado';
+    const filterDesc = getFilterDescription();
+    const isToday = Boolean(state.currentData && state.currentData.isToday);
+    if (filterDesc) {
+      countEl.textContent = 'No hay funciones para el filtro seleccionado';
+    } else if (isToday) {
+      countEl.textContent = 'Ya no quedan funciones disponibles por hoy';
+    } else {
+      countEl.textContent = 'Sin funciones programadas para esta fecha';
+    }
     return;
   }
 

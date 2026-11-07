@@ -269,8 +269,9 @@ button, input, select {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 270px;
-  max-width: 330px;
+  left: auto; /* Aligns to right edge of button, expanding inwards */
+  min-width: 250px;
+  max-width: calc(100vw - 24px);
   background-color: var(--surface-raised);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -280,13 +281,6 @@ button, input, select {
   display: none;
   flex-direction: column;
   gap: 2px;
-}
-
-@media (max-width: 640px) {
-  .cinema-menu {
-    right: auto;
-    left: 0;
-  }
 }
 
 .cinema-selector-wrapper.is-open .cinema-menu {
