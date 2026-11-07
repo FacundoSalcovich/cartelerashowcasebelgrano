@@ -40,7 +40,7 @@
   <meta name="twitter:image" content="https://cartelerashowcasebelgrano.vercel.app/icon.svg">
 
   <!-- Clean, Zero-CDN Native Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=10">
+  <link rel="stylesheet" href="/style.css?v=11">
 
   <!-- Structured Data (JSON-LD) for Search Engines -->
   <script type="application/ld+json">
@@ -70,6 +70,9 @@
   </script>
 </head>
 <body>
+
+  <!-- Transparent overlay backdrop to shield clicks outside open dropdowns -->
+  <div id="dropdownBackdrop" class="dropdown-backdrop" hidden aria-hidden="true"></div>
 
   <!-- Minimalist Clean Header (matches footer style) -->
   <header class="site-header">
@@ -281,7 +284,7 @@
     </div>
   </footer>
 
-  <script src="/app.js?v=9" defer></script>
+  <script src="/app.js?v=11" defer></script>
 
   <!-- Vercel Web Analytics & Speed Insights (Production) -->
   <script>

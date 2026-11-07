@@ -745,6 +745,11 @@ function openMovieModal(movie) {
     </div>
   `;
 
+  // Inmovilize background page scroll
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.overflow = 'hidden';
+  document.body.style.touchAction = 'none';
+
   if (typeof modal.showModal === 'function') {
     if (!modal.open) modal.showModal();
   } else {
@@ -767,6 +772,85 @@ function openMovieModal(movie) {
       modalContent.scrollTop = 0;
     });
   }
+
+  setupSheetGestures(modal);
+}
+
+/**
+ * Swipe-down to dismiss gesture (Instagram / iOS native modal sheet feel)
+ */
+let isSheetGesturesBound = false;
+function setupSheetGestures(modal) {
+  if (isSheetGesturesBound) return;
+  const content = modal.querySelector('.modal-content');
+  if (!content) return;
+  isSheetGesturesBound = true;
+
+  let startY = 0;
+  let startX = 0;
+  let currentDeltaY = 0;
+  let isDragging = false;
+
+  content.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    startY = e.touches[0].clientY;
+    startX = e.touches[0].clientX;
+    currentDeltaY = 0;
+    isDragging = false;
+  }, { passive: true });
+
+  content.addEventListener('touchmove', (e) => {
+    if (e.touches.length !== 1) return;
+    const touchY = e.touches[0].clientY;
+    const touchX = e.touches[0].clientX;
+    const diffY = touchY - startY;
+    const diffX = touchX - startX;
+
+    const isTargetHandle = Boolean(e.target.closest('.sheet-handle'));
+
+    if (!isDragging) {
+      // Must be moving downwards and dominantly vertical
+      if (diffY > 8 && Math.abs(diffY) > Math.abs(diffX * 1.3)) {
+        if (isTargetHandle || content.scrollTop <= 0) {
+          isDragging = true;
+          content.style.transition = 'none';
+        }
+      }
+    }
+
+    if (isDragging) {
+      if (diffY > 0) {
+        if (e.cancelable) e.preventDefault();
+        currentDeltaY = diffY;
+        content.style.transform = `translateY(${diffY}px)`;
+      } else {
+        currentDeltaY = 0;
+        content.style.transform = '';
+        isDragging = false;
+      }
+    }
+  }, { passive: false });
+
+  const finishDrag = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    content.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
+
+    if (currentDeltaY > 80) {
+      content.style.transform = 'translateY(100%)';
+      setTimeout(() => {
+        closeMovieModal();
+      }, 200);
+    } else {
+      content.style.transform = 'translateY(0)';
+      setTimeout(() => {
+        content.style.transition = '';
+      }, 220);
+    }
+  };
+
+  content.addEventListener('touchend', finishDrag, { passive: true });
+  content.addEventListener('touchcancel', finishDrag, { passive: true });
 }
 
 /**
@@ -797,6 +881,12 @@ window.toggleModalShowtime = toggleModalShowtime;
 function closeMovieModal() {
   const modal = document.getElementById('movieModal');
   if (!modal) return;
+
+  // Restore background page scroll
+  document.documentElement.style.overflow = '';
+  document.body.style.overflow = '';
+  document.body.style.touchAction = '';
+
   if (typeof modal.close === 'function' && modal.open) {
     modal.close();
   } else {
@@ -806,6 +896,8 @@ function closeMovieModal() {
   const modalContent = modal.querySelector('.modal-content');
   if (modalContent) {
     modalContent.scrollTop = 0;
+    modalContent.style.transform = '';
+    modalContent.style.transition = '';
   }
 }
 
@@ -1012,12 +1104,27 @@ function updateFooterAndHeader(data) {
 /**
  * Dropdown Pills Logic (Option 2)
  */
+function showDropdownBackdrop() {
+  const backdrop = document.getElementById('dropdownBackdrop');
+  if (backdrop) {
+    backdrop.removeAttribute('hidden');
+  }
+}
+
+function hideDropdownBackdrop() {
+  const backdrop = document.getElementById('dropdownBackdrop');
+  if (backdrop) {
+    backdrop.setAttribute('hidden', '');
+  }
+}
+
 function closeAllDropdowns() {
   document.querySelectorAll('.filter-dropdown-wrapper.is-open, .cinema-selector-wrapper.is-open').forEach(wrapper => {
     wrapper.classList.remove('is-open');
     const btn = wrapper.querySelector('.filter-pill-btn, .cinema-selector-btn');
     if (btn) btn.setAttribute('aria-expanded', 'false');
   });
+  hideDropdownBackdrop();
 }
 
 function updateDropdownUI() {
@@ -1174,6 +1281,7 @@ function setupEventListeners() {
       if (!wasOpen) {
         wrapper.classList.add('is-open');
         btn.setAttribute('aria-expanded', 'true');
+        showDropdownBackdrop();
       }
     });
   });
@@ -1213,16 +1321,38 @@ function setupEventListeners() {
       if (!wasOpen) {
         wrapper.classList.add('is-open');
         cinemaBtn.setAttribute('aria-expanded', 'true');
+        showDropdownBackdrop();
       }
     });
   }
 
-  // Close dropdowns on click outside
+  // Close dropdowns on click outside (fallback)
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.filter-dropdown-wrapper') && !e.target.closest('.cinema-selector-wrapper')) {
       closeAllDropdowns();
     }
   });
+
+  // Dropdown click-shield backdrop listener (absorbs clicks outside so underlying elements aren't triggered)
+  const dropdownBackdrop = document.getElementById('dropdownBackdrop');
+  if (dropdownBackdrop) {
+    dropdownBackdrop.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeAllDropdowns();
+    });
+    dropdownBackdrop.addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+      closeAllDropdowns();
+    }, { passive: true });
+  }
+
+  // Close open dropdowns when scrolling the page
+  window.addEventListener('scroll', () => {
+    const hasOpenDropdown = document.querySelector('.filter-dropdown-wrapper.is-open, .cinema-selector-wrapper.is-open');
+    if (hasOpenDropdown) {
+      closeAllDropdowns();
+    }
+  }, { passive: true });
 
   // Modal close button and backdrop click
   const modal = document.getElementById('movieModal');
@@ -1231,6 +1361,11 @@ function setupEventListeners() {
     modalCloseBtn.addEventListener('click', closeMovieModal);
   }
   if (modal) {
+    modal.addEventListener('close', () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    });
     // Backdrop click detection: clicks outside .modal-content dismiss the dialog
     modal.addEventListener('click', (e) => {
       const modalContent = modal.querySelector('.modal-content');

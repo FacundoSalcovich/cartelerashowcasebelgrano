@@ -289,6 +289,10 @@ button, input, select {
   gap: 2px;
 }
 
+.cinema-selector-wrapper.is-open {
+  z-index: 55;
+}
+
 .cinema-selector-wrapper.is-open .cinema-menu {
   display: flex;
 }
@@ -618,6 +622,11 @@ button, input, select {
   transform: rotate(180deg);
 }
 
+.filter-dropdown-wrapper.is-open {
+  position: relative;
+  z-index: 55;
+}
+
 .filter-menu {
   position: absolute;
   top: calc(100% + 6px);
@@ -627,7 +636,7 @@ button, input, select {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   padding: 4px;
-  z-index: 50;
+  z-index: 60;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   display: none;
   flex-direction: column;
@@ -1053,9 +1062,28 @@ dialog.modal-dialog[open] {
   display: flex;
 }
 
+/* ==========================================================================
+   Dropdown Click-Shield Backdrop
+   ========================================================================== */
+
+.dropdown-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45; /* Under sticky header (50) and open menus (60), above cards (1) */
+  background: transparent;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dropdown-backdrop[hidden] {
+  display: none !important;
+}
+
 /* Sheet grabber handle */
 .sheet-handle {
   display: none;
+  cursor: grab;
+  touch-action: none;
 }
 
 /* ==========================================================================
