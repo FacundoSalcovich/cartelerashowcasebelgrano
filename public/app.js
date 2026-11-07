@@ -898,7 +898,7 @@ function renderCinemaDropdown() {
 
   const current = cinemas.find(c => String(c.id) === String(state.selectedCinema)) || cinemas[0];
   if (label) {
-    label.textContent = current.name;
+    label.textContent = current.shortName || current.name;
   }
 
   menu.innerHTML = cinemas.map(c => {
@@ -959,8 +959,8 @@ function updateFooterAndHeader(data) {
   if (footerMaps && data.mapsUrl) {
     footerMaps.href = data.mapsUrl;
   }
-  if (currentCinemaLabel && data.cinema) {
-    currentCinemaLabel.textContent = data.cinema;
+  if (currentCinemaLabel && (data.cinemaShortName || data.cinema)) {
+    currentCinemaLabel.textContent = data.cinemaShortName || data.cinema;
   }
 }
 
