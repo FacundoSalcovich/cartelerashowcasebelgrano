@@ -539,9 +539,15 @@ function renderBillboard() {
     card.className = 'movie-card';
     card.dataset.movieId = movie.id;
 
-    // Click on card opens the Movie Detail Modal (unless clicking direct ticket purchase link)
+    // Click on card opens the Movie Detail Modal (unless clicking direct ticket purchase link or dismissing a dropdown)
     card.addEventListener('click', (e) => {
       if (e.target.closest('a')) return;
+      if (Date.now() - lastDropdownCloseTime < 350) return;
+      const hasOpenDropdown = document.querySelector('.filter-dropdown-wrapper.is-open, .cinema-selector-wrapper.is-open');
+      if (hasOpenDropdown) {
+        closeAllDropdowns();
+        return;
+      }
       openMovieModal(movie);
     });
 
@@ -1111,6 +1117,8 @@ function showDropdownBackdrop() {
   }
 }
 
+let lastDropdownCloseTime = 0;
+
 function hideDropdownBackdrop() {
   const backdrop = document.getElementById('dropdownBackdrop');
   if (backdrop) {
@@ -1119,6 +1127,10 @@ function hideDropdownBackdrop() {
 }
 
 function closeAllDropdowns() {
+  const hasOpen = document.querySelector('.filter-dropdown-wrapper.is-open, .cinema-selector-wrapper.is-open');
+  if (hasOpen) {
+    lastDropdownCloseTime = Date.now();
+  }
   document.querySelectorAll('.filter-dropdown-wrapper.is-open, .cinema-selector-wrapper.is-open').forEach(wrapper => {
     wrapper.classList.remove('is-open');
     const btn = wrapper.querySelector('.filter-pill-btn, .cinema-selector-btn');
@@ -1326,25 +1338,49 @@ function setupEventListeners() {
     });
   }
 
-  // Close dropdowns on click outside (fallback)
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.filter-dropdown-wrapper') && !e.target.closest('.cinema-selector-wrapper')) {
+  // Global capture interceptor: absorbs any click or touch outside an open dropdown before it can trigger cards or buttons
+  const isTargetInsideDropdown = (target) => {
+    return Boolean(
+      target.closest('.cinema-menu') ||
+      target.closest('.filter-menu') ||
+      target.closest('.cinema-selector-btn') ||
+      target.closest('.filter-pill-btn')
+    );
+  };
+
+  window.addEventListener('click', (e) => {
+    const hasOpenDropdown = document.querySelector('.filter-dropdown-wrapper.is-open, .cinema-selector-wrapper.is-open');
+    if (hasOpenDropdown) {
+      if (isTargetInsideDropdown(e.target)) return;
+      // Click was outside open menu: kill the event and close menus
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      closeAllDropdowns();
+      return;
+    }
+
+    // If a dropdown was dismissed within 350ms, block any delayed synthetic click
+    if (Date.now() - lastDropdownCloseTime < 350) {
+      if (!isTargetInsideDropdown(e.target)) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      }
+    }
+  }, true);
+
+  window.addEventListener('touchend', (e) => {
+    const hasOpenDropdown = document.querySelector('.filter-dropdown-wrapper.is-open, .cinema-selector-wrapper.is-open');
+    if (hasOpenDropdown) {
+      if (isTargetInsideDropdown(e.target)) return;
+      // Touch was outside open menu: prevent synthetic click and close menus
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
       closeAllDropdowns();
     }
-  });
-
-  // Dropdown click-shield backdrop listener (absorbs clicks outside so underlying elements aren't triggered)
-  const dropdownBackdrop = document.getElementById('dropdownBackdrop');
-  if (dropdownBackdrop) {
-    dropdownBackdrop.addEventListener('click', (e) => {
-      e.stopPropagation();
-      closeAllDropdowns();
-    });
-    dropdownBackdrop.addEventListener('touchstart', (e) => {
-      e.stopPropagation();
-      closeAllDropdowns();
-    }, { passive: true });
-  }
+  }, true);
 
   // Close open dropdowns when scrolling the page
   window.addEventListener('scroll', () => {
