@@ -228,8 +228,13 @@ button, input, select {
 
 .cinema-pin-icon {
   display: inline-flex;
-  color: #f59e0b;
+  color: var(--text-secondary);
   flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.cinema-selector-btn:hover .cinema-pin-icon {
+  color: var(--text-main);
 }
 
 .cinema-selector-wrapper.is-open .filter-pill-arrow {
