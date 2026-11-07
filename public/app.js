@@ -534,7 +534,7 @@ function renderBillboard() {
 
   // Render cards (Uncropped 2:3 poster centered vertically, natural spacing, clean times only)
   container.innerHTML = '';
-  processedMovies.forEach(movie => {
+  processedMovies.forEach((movie, idx) => {
     const card = document.createElement('article');
     card.className = 'movie-card';
     card.dataset.movieId = movie.id;
@@ -583,6 +583,9 @@ function renderBillboard() {
       `;
     }).join('');
 
+    // LCP Priority: elevate loading for the first 2 above-the-fold images; lazy load the rest
+    const imgPriorityAttr = idx < 2 ? 'fetchpriority="high"' : 'loading="lazy"';
+
     card.innerHTML = `
       <!-- Uncropped Poster Column (Centered vertically) -->
       <div class="poster-column">
@@ -590,7 +593,7 @@ function renderBillboard() {
              alt="${movie.title}" 
              width="270"
              height="386"
-             loading="lazy"
+             ${imgPriorityAttr}
              onerror="this.onerror=null; this.src='/icon.svg';">
       </div>
 
@@ -742,9 +745,12 @@ function openMovieModal(movie) {
     </div>
   `;
 
-  modal.removeAttribute('hidden');
-  modal.classList.add('is-open');
-  document.body.style.overflow = 'hidden';
+  if (typeof modal.showModal === 'function') {
+    if (!modal.open) modal.showModal();
+  } else {
+    modal.removeAttribute('hidden');
+    modal.classList.add('is-open');
+  }
 
   // Always reset scroll position to 0 after rendering content
   const modalContent = modal.querySelector('.modal-content');
@@ -784,9 +790,12 @@ window.toggleModalShowtime = toggleModalShowtime;
 function closeMovieModal() {
   const modal = document.getElementById('movieModal');
   if (!modal) return;
-  modal.classList.remove('is-open');
-  modal.setAttribute('hidden', '');
-  document.body.style.overflow = '';
+  if (typeof modal.close === 'function' && modal.open) {
+    modal.close();
+  } else {
+    modal.classList.remove('is-open');
+    modal.setAttribute('hidden', '');
+  }
   const modalContent = modal.querySelector('.modal-content');
   if (modalContent) {
     modalContent.scrollTop = 0;
@@ -936,8 +945,7 @@ function renderCinemaDropdown() {
     return `
       <button type="button" 
               class="cinema-menu-item ${isSelected ? 'is-selected' : ''}" 
-              data-cinema-id="${c.id}" 
-              role="menuitem">
+              data-cinema-id="${c.id}">
         <div class="cinema-item-info">
           <span class="cinema-item-name">${escapeHtml(c.name)}</span>
           <span class="cinema-item-location">${escapeHtml(c.location || '')}</span>
@@ -1124,7 +1132,7 @@ function setupEventListeners() {
     // Keyboard shortcut: '/' to focus search, 'Escape' to clear or close modal
     window.addEventListener('keydown', (e) => {
       const modal = document.getElementById('movieModal');
-      const isModalOpen = modal && !modal.hasAttribute('hidden') && modal.classList.contains('is-open');
+      const isModalOpen = modal && (modal.open || (!modal.hasAttribute('hidden') && modal.classList.contains('is-open')));
 
       if (e.key === 'Escape') {
         closeAllDropdowns();
@@ -1216,10 +1224,27 @@ function setupEventListeners() {
     modalCloseBtn.addEventListener('click', closeMovieModal);
   }
   if (modal) {
+    // Backdrop click detection: clicks outside .modal-content dismiss the dialog
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
+      const modalContent = modal.querySelector('.modal-content');
+      if (!modalContent) {
+        closeMovieModal();
+        return;
+      }
+      const rect = modalContent.getBoundingClientRect();
+      const isInside = (
+        e.clientX >= rect.left && e.clientX <= rect.right &&
+        e.clientY >= rect.top && e.clientY <= rect.bottom
+      );
+      if (!isInside) {
         closeMovieModal();
       }
+    });
+
+    // Native Esc key handling on <dialog>
+    modal.addEventListener('cancel', (e) => {
+      e.preventDefault();
+      closeMovieModal();
     });
   }
 }

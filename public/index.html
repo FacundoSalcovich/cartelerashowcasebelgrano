@@ -14,6 +14,7 @@
   <link rel="canonical" href="https://cartelerashowcasebelgrano.vercel.app/">
   
   <!-- Web App & PWA -->
+  <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0c0d10">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -39,7 +40,7 @@
   <meta name="twitter:image" content="https://cartelerashowcasebelgrano.vercel.app/icon.svg">
 
   <!-- Clean, Zero-CDN Native Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=7">
+  <link rel="stylesheet" href="/style.css?v=8">
 
   <!-- Structured Data (JSON-LD) for Search Engines -->
   <script type="application/ld+json">
@@ -94,7 +95,7 @@
 
         <!-- Cinema Selector Dropdown (Belgrano is default) -->
         <div class="cinema-selector-wrapper" id="dropdownCinemaWrapper">
-          <button type="button" class="cinema-selector-btn" id="cinemaSelectorBtn" aria-expanded="false" aria-haspopup="true" aria-label="Seleccionar complejo Showcase">
+          <button type="button" class="cinema-selector-btn" id="cinemaSelectorBtn" aria-expanded="false" aria-label="Seleccionar complejo Showcase">
             <span class="cinema-pin-icon" aria-hidden="true">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
@@ -104,7 +105,7 @@
             <span class="cinema-current-name" id="currentCinemaName">Belgrano</span>
             <span class="filter-pill-arrow" aria-hidden="true">▾</span>
           </button>
-          <div class="cinema-menu" id="menuCinema" role="menu">
+          <div class="cinema-menu" id="menuCinema">
             <!-- Populated dynamically via app.js -->
           </div>
         </div>
@@ -125,8 +126,8 @@
   <section class="toolbar-section" aria-label="Filtros y búsqueda">
     <div class="container">
       <div class="toolbar-grid">
-        <!-- Search bar (Cleaned up, no keyboard shortcuts text) -->
-        <div class="search-wrapper">
+        <!-- Search bar wrapped in semantic <search> element -->
+        <search class="search-wrapper">
           <span class="search-icon" aria-hidden="true">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
@@ -146,26 +147,26 @@
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
-        </div>
+        </search>
 
         <!-- Modern Filter Pills Row (Option 2: Airbnb / Flights dropdown pills) -->
         <div class="filter-pills-row">
           <!-- Dropdown 1: Idioma -->
           <div class="filter-dropdown-wrapper" id="dropdownLangWrapper">
-            <button type="button" class="filter-pill-btn" id="pillLangBtn" aria-expanded="false" aria-haspopup="true">
+            <button type="button" class="filter-pill-btn" id="pillLangBtn" aria-expanded="false">
               <span class="filter-pill-label" id="pillLangLabel">Idioma: Todos</span>
               <span class="filter-pill-arrow" aria-hidden="true">▾</span>
             </button>
-            <div class="filter-menu" id="menuLang" role="menu">
-              <button type="button" class="filter-menu-item is-selected" data-filter="language" data-val="all" role="menuitem">
+            <div class="filter-menu" id="menuLang">
+              <button type="button" class="filter-menu-item is-selected" data-filter="language" data-val="all">
                 <span>Todos los idiomas</span>
                 <span class="filter-menu-check">✓</span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="language" data-val="sub" role="menuitem">
+              <button type="button" class="filter-menu-item" data-filter="language" data-val="sub">
                 <span>Subtitulada</span>
                 <span class="filter-menu-check"></span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="language" data-val="dob" role="menuitem">
+              <button type="button" class="filter-menu-item" data-filter="language" data-val="dob">
                 <span>Doblada (Español)</span>
                 <span class="filter-menu-check"></span>
               </button>
@@ -174,28 +175,28 @@
 
           <!-- Dropdown 2: Horario -->
           <div class="filter-dropdown-wrapper" id="dropdownTimeWrapper">
-            <button type="button" class="filter-pill-btn" id="pillTimeBtn" aria-expanded="false" aria-haspopup="true">
+            <button type="button" class="filter-pill-btn" id="pillTimeBtn" aria-expanded="false">
               <span class="filter-pill-label" id="pillTimeLabel">Horario: Cualquier hora</span>
               <span class="filter-pill-arrow" aria-hidden="true">▾</span>
             </button>
-            <div class="filter-menu" id="menuTime" role="menu">
-              <button type="button" class="filter-menu-item is-selected" data-filter="timeBand" data-val="all" role="menuitem">
+            <div class="filter-menu" id="menuTime">
+              <button type="button" class="filter-menu-item is-selected" data-filter="timeBand" data-val="all">
                 <span>Cualquier hora</span>
                 <span class="filter-menu-check">✓</span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="15" role="menuitem">
+              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="15">
                 <span>Desde 15:00 hs</span>
                 <span class="filter-menu-check"></span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="18" role="menuitem">
+              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="18">
                 <span>Desde 18:00 hs</span>
                 <span class="filter-menu-check"></span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="20" role="menuitem">
+              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="20">
                 <span>Desde 20:00 hs</span>
                 <span class="filter-menu-check"></span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="22" role="menuitem">
+              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="22">
                 <span>Desde 22:00 hs</span>
                 <span class="filter-menu-check"></span>
               </button>
@@ -204,20 +205,20 @@
 
           <!-- Dropdown 3: Formato -->
           <div class="filter-dropdown-wrapper" id="dropdownFormatWrapper">
-            <button type="button" class="filter-pill-btn" id="pillFormatBtn" aria-expanded="false" aria-haspopup="true">
+            <button type="button" class="filter-pill-btn" id="pillFormatBtn" aria-expanded="false">
               <span class="filter-pill-label" id="pillFormatLabel">Formato: 2D y 3D</span>
               <span class="filter-pill-arrow" aria-hidden="true">▾</span>
             </button>
-            <div class="filter-menu" id="menuFormat" role="menu">
-              <button type="button" class="filter-menu-item is-selected" data-filter="format" data-val="all" role="menuitem">
+            <div class="filter-menu" id="menuFormat">
+              <button type="button" class="filter-menu-item is-selected" data-filter="format" data-val="all">
                 <span>2D y 3D</span>
                 <span class="filter-menu-check">✓</span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="format" data-val="2d" role="menuitem">
+              <button type="button" class="filter-menu-item" data-filter="format" data-val="2d">
                 <span>Solo 2D</span>
                 <span class="filter-menu-check"></span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="format" data-val="3d" role="menuitem">
+              <button type="button" class="filter-menu-item" data-filter="format" data-val="3d">
                 <span>Solo 3D</span>
                 <span class="filter-menu-check"></span>
               </button>
@@ -248,9 +249,9 @@
     </div>
   </main>
 
-  <!-- Movie Detail Modal / Sheet -->
-  <div id="movieModal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="modalMovieTitle">
-    <div class="modal-content" role="document">
+  <!-- Movie Detail Modal / Sheet (Native <dialog> with Top-Layer & Inert) -->
+  <dialog id="movieModal" class="modal-dialog" aria-labelledby="modalMovieTitle">
+    <div class="modal-content">
       <button type="button" id="modalCloseBtn" class="modal-close-btn" aria-label="Cerrar ficha">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -261,7 +262,7 @@
         <!-- Injected dynamically on click -->
       </div>
     </div>
-  </div>
+  </dialog>
 
   <!-- Clean Minimalist Footer (Dynamic to selected cinema) -->
   <footer class="site-footer">
@@ -279,7 +280,7 @@
     </div>
   </footer>
 
-  <script src="/app.js?v=7" defer></script>
+  <script src="/app.js?v=8" defer></script>
 
   <!-- Vercel Web Analytics & Speed Insights (Production) -->
   <script>
