@@ -752,9 +752,16 @@ function openMovieModal(movie) {
     modal.classList.add('is-open');
   }
 
+  // Ensure close button does not retain focus outline ring upon opening
+  const modalCloseBtn = document.getElementById('modalCloseBtn');
+  if (modalCloseBtn) {
+    modalCloseBtn.blur();
+  }
+
   // Always reset scroll position to 0 after rendering content
   const modalContent = modal.querySelector('.modal-content');
   if (modalContent) {
+    modalContent.focus({ preventScroll: true });
     modalContent.scrollTop = 0;
     requestAnimationFrame(() => {
       modalContent.scrollTop = 0;
