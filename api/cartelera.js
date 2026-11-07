@@ -5,6 +5,94 @@ const movieDetailsCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000;      // 5 minutes for full billboard
 const TREE_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes for film tree
 
+// Showcase complexes in Argentina (Official Voyalcine / Showcase IDs)
+export const CINEMAS = [
+  {
+    id: 14,
+    slug: 'belgrano',
+    name: 'Showcase Belgrano',
+    shortName: 'Belgrano',
+    location: 'Belgrano, CABA',
+    address: 'Monroe 1750, Ciudad Autónoma de Buenos Aires',
+    mapsQuery: 'Showcase Cinemas Belgrano Monroe 1750'
+  },
+  {
+    id: 13,
+    slug: 'norcenter',
+    name: 'Showcase Norcenter',
+    shortName: 'Norcenter',
+    location: 'Vicente López, GBA',
+    address: 'Esteban Echeverría 3750, Vicente López, Prov. de Buenos Aires',
+    mapsQuery: 'Showcase Cinemas Norcenter Esteban Echeverria 3750'
+  },
+  {
+    id: 18,
+    slug: 'imax',
+    name: 'IMAX Theatre (Norcenter)',
+    shortName: 'IMAX Norcenter',
+    location: 'Vicente López, GBA',
+    address: 'Esteban Echeverría 3750, Vicente López, Prov. de Buenos Aires',
+    mapsQuery: 'IMAX Theatre Norcenter Esteban Echeverria 3750'
+  },
+  {
+    id: 11,
+    slug: 'haedo',
+    name: 'Showcase Haedo',
+    shortName: 'Haedo',
+    location: 'Haedo, GBA Oeste',
+    address: 'Av. Dr. Luis Güemes 393, Haedo (Plaza Oeste Shopping)',
+    mapsQuery: 'Showcase Cinemas Haedo Plaza Oeste'
+  },
+  {
+    id: 15,
+    slug: 'quilmes',
+    name: 'Showcase Quilmes',
+    shortName: 'Quilmes',
+    location: 'Quilmes, GBA Sur',
+    address: 'Humberto 1° 299, Quilmes (Quilmes Factory)',
+    mapsQuery: 'Showcase Cinemas Quilmes Factory'
+  },
+  {
+    id: 12,
+    slug: 'cordoba',
+    name: 'Showcase Córdoba (Villa Cabrera)',
+    shortName: 'Córdoba (Villa Cabrera)',
+    location: 'Córdoba Capital',
+    address: 'José Antonio de Goyechea 2851, Córdoba (Córdoba Shopping)',
+    mapsQuery: 'Showcase Cinemas Cordoba Villa Cabrera'
+  },
+  {
+    id: 17,
+    slug: 'villa-allende',
+    name: 'Showcase Villa Allende',
+    shortName: 'Villa Allende (Córdoba)',
+    location: 'Villa Allende, Córdoba',
+    address: 'Av. Padre Luchesse 3000, Villa Allende (VAS Shopping)',
+    mapsQuery: 'Showcase Cinemas Villa Allende Shopping'
+  },
+  {
+    id: 16,
+    slug: 'rosario',
+    name: 'Showcase Rosario',
+    shortName: 'Rosario',
+    location: 'Rosario, Santa Fe',
+    address: 'Junín 501, Rosario, Santa Fe (Alto Rosario Shopping)',
+    mapsQuery: 'Showcase Cinemas Rosario Alto Rosario'
+  }
+];
+
+export function resolveCinema(cinemaParam) {
+  if (!cinemaParam) return CINEMAS[0]; // Default: Showcase Belgrano
+  const paramStr = String(cinemaParam).toLowerCase().trim();
+  const byId = CINEMAS.find(c => String(c.id) === paramStr);
+  if (byId) return byId;
+  const bySlug = CINEMAS.find(c => c.slug === paramStr || c.shortName.toLowerCase() === paramStr);
+  if (bySlug) return bySlug;
+  const byName = CINEMAS.find(c => c.name.toLowerCase().includes(paramStr));
+  if (byName) return byName;
+  return CINEMAS[0];
+}
+
 function getArgentinaDateStr() {
   const d = new Date();
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(d);
@@ -20,18 +108,18 @@ function getArgentinaTimeStr() {
   }).format(d);
 }
 
-async function getActiveFilmIds() {
+async function getActiveFilmIds(cinemaId = 14) {
   const ids = new Set();
   
-  // Source 1: Voyalcine cinema 14 (Exact complex ID for Showcase Belgrano)
+  // Source 1: Voyalcine for the specific cinema
   try {
-    const res = await fetch('https://api.voyalcine.net/films?cinemaId=14', { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(`https://api.voyalcine.net/films?cinemaId=${cinemaId}`, { signal: AbortSignal.timeout(5000) });
     if (res.ok) {
       const data = await res.json();
       data.forEach(f => ids.add(f.id));
     }
   } catch (e) {
-    console.warn('Voyalcine cinemaId=14 error:', e.message);
+    console.warn(`Voyalcine cinemaId=${cinemaId} error:`, e.message);
   }
 
   // Source 2: Showcase official homepage
@@ -103,7 +191,7 @@ async function fetchFilmDetails(filmId) {
   }
 }
 
-async function fetchFilmBelgranoData(filmId, targetDate) {
+async function fetchFilmDataForCinema(filmId, targetDate, cinema) {
   let data = null;
 
   // Check film tree cache first
@@ -134,13 +222,16 @@ async function fetchFilmBelgranoData(filmId, targetDate) {
   const dayData = data.days && data.days[targetDate];
   if (!dayData) return null;
 
-  const belgrano = dayData.find(c => c.name && c.name.toLowerCase().includes('belgrano'));
-  if (!belgrano) return null;
+  // Match cinema by ID, or fallback to name substring
+  const cinemaData = dayData.find(c => c.id === cinema.id) ||
+    dayData.find(c => c.name && c.name.toLowerCase().includes(cinema.shortName.toLowerCase()));
+
+  if (!cinemaData) return null;
 
   const formats = [];
   const allTimes = [];
 
-  for (const f of belgrano.formats || []) {
+  for (const f of cinemaData.formats || []) {
     const times = (f.performances || []).map(p => p.showTime).sort();
     if (times.length > 0) {
       formats.push({
@@ -175,19 +266,21 @@ async function fetchFilmBelgranoData(filmId, targetDate) {
   };
 }
 
-export async function getCarteleraBelgrano(requestedDate) {
+export async function getCartelera(requestedDate, requestedCinema = 14) {
+  const cinemaInfo = resolveCinema(requestedCinema);
   const todayAr = getArgentinaDateStr();
   const targetDate = requestedDate || todayAr;
   const isToday = targetDate === todayAr;
   const now = Date.now();
+  const cacheKey = `${cinemaInfo.id}_${targetDate}`;
 
-  const cached = cache.get(targetDate);
+  const cached = cache.get(cacheKey);
   if (cached && now - cached.timestamp < CACHE_TTL_MS) {
     return cached.data;
   }
 
-  const filmIds = await getActiveFilmIds();
-  const promises = filmIds.map(id => fetchFilmBelgranoData(id, targetDate));
+  const filmIds = await getActiveFilmIds(cinemaInfo.id);
+  const promises = filmIds.map(id => fetchFilmDataForCinema(id, targetDate, cinemaInfo));
   const settled = await Promise.allSettled(promises);
 
   const movies = settled
@@ -198,8 +291,20 @@ export async function getCarteleraBelgrano(requestedDate) {
   const currentTimeAr = getArgentinaTimeStr();
 
   const payload = {
-    cinema: 'Showcase Belgrano',
-    address: 'Monroe 1750, Belgrano, CABA',
+    cinema: cinemaInfo.name,
+    cinemaId: cinemaInfo.id,
+    cinemaSlug: cinemaInfo.slug,
+    cinemaShortName: cinemaInfo.shortName,
+    location: cinemaInfo.location,
+    address: cinemaInfo.address,
+    mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cinemaInfo.mapsQuery)}`,
+    availableCinemas: CINEMAS.map(c => ({
+      id: c.id,
+      slug: c.slug,
+      name: c.name,
+      shortName: c.shortName,
+      location: c.location
+    })),
     todayDate: todayAr,
     targetDate: targetDate,
     isToday: isToday,
@@ -209,8 +314,13 @@ export async function getCarteleraBelgrano(requestedDate) {
     cachedAt: new Date().toISOString()
   };
 
-  cache.set(targetDate, { timestamp: now, data: payload });
+  cache.set(cacheKey, { timestamp: now, data: payload });
   return payload;
+}
+
+// Backwards compatibility alias
+export async function getCarteleraBelgrano(requestedDate) {
+  return getCartelera(requestedDate, 14);
 }
 
 export default async function handler(req, res) {
@@ -227,7 +337,8 @@ export default async function handler(req, res) {
   try {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const dateParam = url.searchParams.get('date');
-    const data = await getCarteleraBelgrano(dateParam);
+    const cinemaParam = url.searchParams.get('cinema') || url.searchParams.get('cinemaId') || '14';
+    const data = await getCartelera(dateParam, cinemaParam);
     return res.status(200).json(data);
   } catch (error) {
     console.error('Error fetching cartelera:', error);

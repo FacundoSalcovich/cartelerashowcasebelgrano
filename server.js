@@ -2,7 +2,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { getCarteleraBelgrano } from './api/cartelera.js';
+import { getCartelera } from './api/cartelera.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,7 +37,8 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/cartelera' || pathname === '/api/cartelera.js') {
     try {
       const dateParam = parsedUrl.searchParams.get('date');
-      const data = await getCarteleraBelgrano(dateParam);
+      const cinemaParam = parsedUrl.searchParams.get('cinema') || parsedUrl.searchParams.get('cinemaId') || '14';
+      const data = await getCartelera(dateParam, cinemaParam);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       return res.end(JSON.stringify(data));
     } catch (err) {
@@ -87,10 +88,10 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`\n======================================================`);
-  console.log(`🎬 Cartelera Showcase Belgrano lista para usar:`);
+  console.log(`🎬 Cartelera Showcase lista para usar:`);
   console.log(`👉 http://localhost:${PORT}`);
   console.log(`======================================================\n`);
 
-  // Pre-warm cartelera cache on startup for instant responses
-  getCarteleraBelgrano().catch(e => console.warn('Pre-warm error:', e.message));
+  // Pre-warm default cartelera (Belgrano) cache on startup
+  getCartelera().catch(e => console.warn('Pre-warm error:', e.message));
 });

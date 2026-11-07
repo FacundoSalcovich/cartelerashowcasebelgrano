@@ -1,11 +1,19 @@
 /**
- * Showcase Belgrano - Frontend Client
+ * Cartelera Showcase - Frontend Client
  * Pure modern vanilla JS, Zero external runtime libraries
  */
 
 // Application State
 const state = {
   selectedDate: null,
+  selectedCinema: (() => {
+    try {
+      return localStorage.getItem('cartelera_cinema') || '14';
+    } catch {
+      return '14';
+    }
+  })(),
+  availableCinemas: [],
   filters: {
     language: 'all',            // 'all' | 'sub' | 'dob'
     timeBand: 'all',            // 'all' | '15' (15:00+) | '18' (18:00+) | '20' (20:00+) | '22' (22:00+)
@@ -258,14 +266,17 @@ function selectToday() {
 }
 
 /**
- * Fetches billboard data for selectedDate
+ * Fetches billboard data for selectedDate and selectedCinema
  */
 async function fetchCartelera(forceReload = false) {
   if (state.isLoading) return;
 
+  const cacheKey = `${state.selectedCinema}_${state.selectedDate}`;
+
   // Use client-side cached data if available and not forced
-  if (!forceReload && state.cache.has(state.selectedDate)) {
-    state.currentData = state.cache.get(state.selectedDate);
+  if (!forceReload && state.cache.has(cacheKey)) {
+    state.currentData = state.cache.get(cacheKey);
+    updateFooterAndHeader(state.currentData);
     renderBillboard();
     return;
   }
@@ -274,12 +285,17 @@ async function fetchCartelera(forceReload = false) {
   renderSkeletons();
 
   try {
-    const res = await fetch(`/api/cartelera?date=${state.selectedDate}`);
+    const res = await fetch(`/api/cartelera?date=${state.selectedDate}&cinema=${state.selectedCinema}`);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
 
     state.currentData = data;
-    state.cache.set(state.selectedDate, data);
+    if (data.availableCinemas && data.availableCinemas.length > 0) {
+      state.availableCinemas = data.availableCinemas;
+      renderCinemaDropdown();
+    }
+    updateFooterAndHeader(data);
+    state.cache.set(cacheKey, data);
     renderBillboard();
   } catch (err) {
     console.error('Error fetching cartelera:', err);
@@ -688,7 +704,7 @@ function openMovieModal(movie) {
 
     <!-- Formats & Showtimes -->
     <div class="modal-section-block">
-      <span class="modal-section-label">Horarios en Showcase Belgrano</span>
+      <span class="modal-section-label">Horarios en ${escapeHtml(state.currentData ? state.currentData.cinema : 'Showcase')}</span>
       <div class="formats-container">
         ${formatsHtml}
       </div>
@@ -798,7 +814,10 @@ function shareMovieInvitation(movieId) {
     }
   }
 
-  lines.push(`📍 *Lugar:* Showcase Belgrano (Monroe 1750, CABA)`);
+  const cinemaPlace = (state.currentData && state.currentData.cinema)
+    ? `${state.currentData.cinema} (${state.currentData.address || ''})`
+    : 'Showcase Cinemas';
+  lines.push(`📍 *Lugar:* ${cinemaPlace}`);
   lines.push(``);
 
   if (movie.synopsis) {
@@ -857,13 +876,101 @@ function resetSearch() {
   renderBillboard();
 }
 
+const CINEMAS_FALLBACK = [
+  { id: 14, slug: 'belgrano', name: 'Showcase Belgrano', shortName: 'Belgrano', location: 'Belgrano, CABA' },
+  { id: 13, slug: 'norcenter', name: 'Showcase Norcenter', shortName: 'Norcenter', location: 'Vicente López, GBA' },
+  { id: 18, slug: 'imax', name: 'IMAX Theatre (Norcenter)', shortName: 'IMAX Norcenter', location: 'Vicente López, GBA' },
+  { id: 11, slug: 'haedo', name: 'Showcase Haedo', shortName: 'Haedo', location: 'Haedo, GBA Oeste' },
+  { id: 15, slug: 'quilmes', name: 'Showcase Quilmes', shortName: 'Quilmes', location: 'Quilmes, GBA Sur' },
+  { id: 12, slug: 'cordoba', name: 'Showcase Córdoba (Villa Cabrera)', shortName: 'Córdoba (Villa Cabrera)', location: 'Córdoba Capital' },
+  { id: 17, slug: 'villa-allende', name: 'Showcase Villa Allende', shortName: 'Villa Allende (Córdoba)', location: 'Villa Allende, Córdoba' },
+  { id: 16, slug: 'rosario', name: 'Showcase Rosario', shortName: 'Rosario', location: 'Rosario, Santa Fe' }
+];
+
+function renderCinemaDropdown() {
+  const menu = document.getElementById('menuCinema');
+  const label = document.getElementById('currentCinemaName');
+  if (!menu) return;
+
+  const cinemas = (state.availableCinemas && state.availableCinemas.length > 0)
+    ? state.availableCinemas
+    : CINEMAS_FALLBACK;
+
+  const current = cinemas.find(c => String(c.id) === String(state.selectedCinema)) || cinemas[0];
+  if (label) {
+    label.textContent = current.name;
+  }
+
+  menu.innerHTML = cinemas.map(c => {
+    const isSelected = String(c.id) === String(state.selectedCinema);
+    return `
+      <button type="button" 
+              class="cinema-menu-item ${isSelected ? 'is-selected' : ''}" 
+              data-cinema-id="${c.id}" 
+              role="menuitem">
+        <div class="cinema-item-info">
+          <span class="cinema-item-name">${escapeHtml(c.name)}</span>
+          <span class="cinema-item-location">${escapeHtml(c.location || '')}</span>
+        </div>
+        <span class="cinema-menu-check">${isSelected ? '✓' : ''}</span>
+      </button>
+    `;
+  }).join('');
+
+  // Item click handlers
+  menu.querySelectorAll('.cinema-menu-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const cinemaId = item.dataset.cinemaId;
+      if (cinemaId && cinemaId !== state.selectedCinema) {
+        selectCinema(cinemaId);
+      } else {
+        closeAllDropdowns();
+      }
+    });
+  });
+}
+
+function selectCinema(cinemaId) {
+  state.selectedCinema = String(cinemaId);
+  try {
+    localStorage.setItem('cartelera_cinema', state.selectedCinema);
+  } catch (e) {
+    // Ignore localStorage errors
+  }
+  closeAllDropdowns();
+  renderCinemaDropdown();
+  fetchCartelera(false);
+}
+
+function updateFooterAndHeader(data) {
+  if (!data) return;
+  const footerName = document.getElementById('footerCinemaName');
+  const footerAddress = document.getElementById('footerCinemaAddress');
+  const footerMaps = document.getElementById('footerMapsLink');
+  const currentCinemaLabel = document.getElementById('currentCinemaName');
+
+  if (footerName && data.cinema) {
+    footerName.textContent = data.cinema;
+  }
+  if (footerAddress && data.address) {
+    footerAddress.textContent = `${data.address} • Horarios oficiales`;
+  }
+  if (footerMaps && data.mapsUrl) {
+    footerMaps.href = data.mapsUrl;
+  }
+  if (currentCinemaLabel && data.cinema) {
+    currentCinemaLabel.textContent = data.cinema;
+  }
+}
+
 /**
  * Dropdown Pills Logic (Option 2)
  */
 function closeAllDropdowns() {
-  document.querySelectorAll('.filter-dropdown-wrapper.is-open').forEach(wrapper => {
+  document.querySelectorAll('.filter-dropdown-wrapper.is-open, .cinema-selector-wrapper.is-open').forEach(wrapper => {
     wrapper.classList.remove('is-open');
-    const btn = wrapper.querySelector('.filter-pill-btn');
+    const btn = wrapper.querySelector('.filter-pill-btn, .cinema-selector-btn');
     if (btn) btn.setAttribute('aria-expanded', 'false');
   });
 }
@@ -1049,9 +1156,25 @@ function setupEventListeners() {
     });
   }
 
+  // Cinema Selector Dropdown button
+  const cinemaBtn = document.getElementById('cinemaSelectorBtn');
+  if (cinemaBtn) {
+    cinemaBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wrapper = document.getElementById('dropdownCinemaWrapper');
+      if (!wrapper) return;
+      const wasOpen = wrapper.classList.contains('is-open');
+      closeAllDropdowns();
+      if (!wasOpen) {
+        wrapper.classList.add('is-open');
+        cinemaBtn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  }
+
   // Close dropdowns on click outside
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.filter-dropdown-wrapper')) {
+    if (!e.target.closest('.filter-dropdown-wrapper') && !e.target.closest('.cinema-selector-wrapper')) {
       closeAllDropdowns();
     }
   });
@@ -1073,6 +1196,7 @@ function setupEventListeners() {
 
 // Initial bootstrap
 document.addEventListener('DOMContentLoaded', () => {
+  renderCinemaDropdown();
   initDateTabs();
   setupEventListeners();
   fetchCartelera(false);

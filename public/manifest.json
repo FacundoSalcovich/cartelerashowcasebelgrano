@@ -1,7 +1,7 @@
 {
-  "name": "Cartelera Showcase Belgrano",
-  "short_name": "Showcase Belgrano",
-  "description": "Cartelera y horarios oficiales en vivo de Showcase Belgrano (Monroe 1750, CABA)",
+  "name": "Cartelera Showcase",
+  "short_name": "Showcase",
+  "description": "Cartelera y horarios oficiales en vivo de cines Showcase en Argentina",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0c0d10",

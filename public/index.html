@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cartelera Showcase Belgrano • Horarios Oficiales</title>
+  <title>Cartelera Showcase • Horarios Oficiales</title>
   
-  <meta name="description" content="Cartelera completa y horarios en vivo de Showcase Belgrano (Monroe 1750, CABA). Consultá funciones de hoy en 2D, 3D, subtituladas y dobladas al instante.">
-  <meta name="keywords" content="Cartelera Showcase Belgrano, cine belgrano, cartelera showcase belgrano, horarios cine belgrano, showcase monroe 1750, peliculas belgrano">
+  <meta name="description" content="Cartelera completa y actualizada de cines Showcase en Argentina (Belgrano, Norcenter, IMAX, Haedo, Quilmes, Córdoba y Rosario). Funciones, horarios y trailers.">
+  <meta name="keywords" content="Cartelera Showcase, cines showcase, showcase belgrano, showcase norcenter, imax norcenter, showcase haedo, showcase quilmes, showcase cordoba, showcase rosario, horarios showcase">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <meta name="googlebot" content="index, follow">
   
@@ -17,7 +17,7 @@
   <meta name="theme-color" content="#0c0d10">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Cartelera Showcase Belgrano">
+  <meta name="apple-mobile-web-app-title" content="Cartelera Showcase">
   
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
@@ -25,21 +25,21 @@
   
   <!-- Open Graph / WhatsApp / Facebook -->
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Cartelera Showcase Belgrano">
-  <meta property="og:title" content="Cartelera Showcase Belgrano • Horarios Oficiales">
-  <meta property="og:description" content="Cartelera completa y horarios en vivo de Showcase Belgrano (Monroe 1750, CABA). Consultá funciones en 2D, 3D, subtituladas y dobladas.">
+  <meta property="og:site_name" content="Cartelera Showcase">
+  <meta property="og:title" content="Cartelera Showcase • Horarios Oficiales">
+  <meta property="og:description" content="Consultá la cartelera de Showcase (Belgrano, Norcenter, IMAX, Haedo, Quilmes, Córdoba, Rosario) en tiempo real con horarios oficiales y trailers.">
   <meta property="og:url" content="https://cartelerashowcasebelgrano.vercel.app/">
   <meta property="og:image" content="https://cartelerashowcasebelgrano.vercel.app/icon.svg">
   <meta property="og:locale" content="es_AR">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Cartelera Showcase Belgrano • Horarios Oficiales">
-  <meta name="twitter:description" content="Cartelera completa y horarios en vivo de Showcase Belgrano (Monroe 1750, CABA).">
+  <meta name="twitter:title" content="Cartelera Showcase • Horarios Oficiales">
+  <meta name="twitter:description" content="Cartelera completa y actualizada de todos los cines Showcase en Argentina.">
   <meta name="twitter:image" content="https://cartelerashowcasebelgrano.vercel.app/icon.svg">
 
   <!-- Clean, Zero-CDN Native Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=3">
+  <link rel="stylesheet" href="/style.css?v=4">
 
   <!-- Structured Data (JSON-LD) for Search Engines -->
   <script type="application/ld+json">
@@ -88,7 +88,24 @@
             </svg>
           </div>
           <div class="brand-info">
-            <h1>Showcase Belgrano</h1>
+            <h1>Cartelera Showcase</h1>
+          </div>
+        </div>
+
+        <!-- Cinema Selector Dropdown (Belgrano is default) -->
+        <div class="cinema-selector-wrapper" id="dropdownCinemaWrapper">
+          <button type="button" class="cinema-selector-btn" id="cinemaSelectorBtn" aria-expanded="false" aria-haspopup="true" aria-label="Seleccionar complejo Showcase">
+            <span class="cinema-pin-icon" aria-hidden="true">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+            </span>
+            <span class="cinema-current-name" id="currentCinemaName">Showcase Belgrano</span>
+            <span class="filter-pill-arrow" aria-hidden="true">▾</span>
+          </button>
+          <div class="cinema-menu" id="menuCinema" role="menu">
+            <!-- Populated dynamically via app.js -->
           </div>
         </div>
       </div>
@@ -246,23 +263,23 @@
     </div>
   </div>
 
-  <!-- Clean Minimalist Footer -->
+  <!-- Clean Minimalist Footer (Dynamic to selected cinema) -->
   <footer class="site-footer">
     <div class="container">
       <div class="footer-inner">
         <div class="footer-meta">
-          <strong>Showcase Cinemas Belgrano</strong>
-          <span>Monroe 1750, Ciudad Autónoma de Buenos Aires • Horarios oficiales</span>
+          <strong id="footerCinemaName">Showcase Belgrano</strong>
+          <span id="footerCinemaAddress">Monroe 1750, Ciudad Autónoma de Buenos Aires • Horarios oficiales</span>
         </div>
         <div class="footer-links">
           <a href="https://entradas.todoshowcase.com/showcase/" target="_blank" rel="noopener noreferrer" class="footer-link">Sitio oficial Showcase</a>
-          <a href="https://www.google.com/maps/search/?api=1&query=Showcase+Cinemas+Belgrano+Monroe+1750" target="_blank" rel="noopener noreferrer" class="footer-link">Cómo llegar (Google Maps)</a>
+          <a href="https://www.google.com/maps/search/?api=1&query=Showcase+Cinemas+Belgrano+Monroe+1750" target="_blank" rel="noopener noreferrer" id="footerMapsLink" class="footer-link">Cómo llegar (Google Maps)</a>
         </div>
       </div>
     </div>
   </footer>
 
-  <script src="/app.js?v=2" defer></script>
+  <script src="/app.js?v=4" defer></script>
 
   <!-- Vercel Web Analytics & Speed Insights (Production) -->
   <script>
