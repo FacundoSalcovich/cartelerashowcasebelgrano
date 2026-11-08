@@ -160,7 +160,7 @@ button, input, select {
   height: 32px;
   border-radius: var(--radius-sm);
   background-color: var(--surface-raised);
-  border: 1px solid var(--border-strong);
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -279,7 +279,7 @@ button, input, select {
   min-width: 250px;
   max-width: calc(100vw - 24px);
   background-color: var(--surface-raised);
-  border: 1px solid var(--border-strong);
+  border: none;
   border-radius: var(--radius-sm);
   padding: 4px;
   z-index: 60;
@@ -359,7 +359,7 @@ button, input, select {
    ========================================================================== */
 
 .view-mode-wrapper {
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   background-color: rgba(12, 13, 16, 0.85);
   padding-top: 8px;
   padding-bottom: 8px;
@@ -371,7 +371,7 @@ button, input, select {
   max-width: 440px;
   margin: 0 auto;
   background-color: var(--surface);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-sm);
   padding: 3px;
   gap: 3px;
@@ -386,7 +386,7 @@ button, input, select {
   height: 38px;
   padding: 0 12px;
   border-radius: var(--radius-xs);
-  border: 1px solid transparent;
+  border: none;
   background-color: transparent;
   color: var(--text-secondary);
   font-family: var(--font-sans);
@@ -399,7 +399,7 @@ button, input, select {
 
 .view-mode-tab:hover {
   color: var(--text-main);
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: rgba(255, 255, 255, 0.04);
 }
 
 .view-mode-tab:focus-visible {
@@ -413,10 +413,10 @@ button, input, select {
 
 .view-mode-tab.is-active {
   background-color: var(--surface-raised);
-  border-color: var(--border-strong);
+  border: none;
   color: var(--text-main);
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: none;
 }
 
 .view-mode-tab svg {
@@ -433,7 +433,7 @@ button, input, select {
    ========================================================================== */
 
 .dates-nav-wrapper {
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   background-color: rgba(15, 17, 21, 0.7);
   overflow: hidden;
 }
@@ -477,12 +477,12 @@ button, input, select {
 
 .date-tab:hover {
   background-color: var(--surface-raised);
-  border-color: var(--border-strong);
+  border: none;
   color: var(--text-main);
 }
 
 .date-tab:focus-visible {
-  outline: 2px solid var(--accent-gold);
+  outline: 2px solid var(--accent-white);
   outline-offset: 2px;
 }
 
@@ -492,10 +492,10 @@ button, input, select {
 
 .date-tab.is-active {
   background-color: var(--accent-white);
-  border-color: var(--accent-white);
+  border: none;
   color: var(--text-inverse);
   font-weight: 800;
-  box-shadow: 0 2px 10px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 10px rgba(255, 255, 255, 0.15);
 }
 
 .date-tab .date-sublabel {
@@ -698,7 +698,7 @@ button, input, select {
   left: 0;
   min-width: 180px;
   background-color: #1a1d24;
-  border: 1px solid var(--border-strong);
+  border: none;
   border-radius: var(--radius-sm);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
   padding: 4px;
@@ -1090,16 +1090,16 @@ button, input, select {
 }
 
 .showtime-btn:focus-visible {
-  outline: 2px solid var(--accent-gold);
+  outline: 2px solid var(--accent-white);
   outline-offset: 2px;
 }
 
 @media (hover: hover) {
   .showtime-btn:hover:not(.is-selected):not(.is-started) {
-    background-color: #242938;
+    background-color: #272c3a;
     border: none;
-    color: var(--accent-gold);
-    box-shadow: 0 0 12px rgba(245, 197, 24, 0.25);
+    color: #ffffff;
+    box-shadow: none;
     transform: translateY(-1px);
   }
 }
@@ -1110,21 +1110,20 @@ button, input, select {
 
 /* Past or In-progress Showtime (Started <= 15 min ago, subdued & distinct, non-purchasable) */
 .showtime-btn.is-started {
-  background-color: rgba(255, 255, 255, 0.02);
-  border-color: rgba(255, 255, 255, 0.12);
-  border-style: dashed;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: none;
   color: #7e8696;
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
   user-select: none;
   pointer-events: auto;
 }
 
 .showtime-btn.is-started:hover {
-  background-color: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.05);
+  border: none;
   color: #94a3b8;
-  opacity: 0.8;
+  opacity: 0.7;
 }
 
 .showtime-btn.is-started:active,
@@ -1161,7 +1160,7 @@ button, input, select {
 }
 
 .btn-open-detail:hover {
-  color: var(--accent-gold);
+  color: var(--accent-white);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -1240,7 +1239,7 @@ dialog.modal-dialog[open] {
 
   .modal-content {
     background-color: var(--surface);
-    border: 1px solid var(--border-strong);
+    border: none;
     border-radius: var(--radius-md);
     max-width: 580px;
     width: 100%;
@@ -1281,10 +1280,7 @@ dialog.modal-dialog[open] {
 
   .modal-content {
     background-color: var(--surface);
-    border-top: 1px solid var(--border-strong);
-    border-left: none;
-    border-right: none;
-    border-bottom: none;
+    border: none;
     border-radius: 18px 18px 0 0;
     width: 100%;
     max-width: 100%;
@@ -1363,7 +1359,7 @@ dialog.modal-dialog[open] {
   height: 32px;
   border-radius: var(--radius-sm);
   background-color: var(--surface-raised);
-  border: 1px solid var(--border);
+  border: none;
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -1377,7 +1373,7 @@ dialog.modal-dialog[open] {
 .modal-close-btn:hover {
   background-color: var(--surface-subtle);
   color: var(--text-main);
-  border-color: var(--border-strong);
+  border: none;
 }
 
 .modal-close-btn:focus {
@@ -1421,7 +1417,7 @@ dialog.modal-dialog[open] {
   align-self: center;
   border-radius: var(--radius-sm);
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: none;
   background-color: var(--surface-raised);
 }
 
@@ -1494,7 +1490,7 @@ dialog.modal-dialog[open] {
   border-radius: var(--radius-sm);
   overflow: hidden;
   background-color: #000;
-  border: 1px solid var(--border);
+  border: none;
 }
 
 .trailer-container iframe {
@@ -1515,7 +1511,7 @@ dialog.modal-dialog[open] {
   text-decoration: none;
   padding: 8px 12px;
   background-color: var(--surface-raised);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-sm);
   transition: all 0.15s ease;
   width: fit-content;
@@ -1523,13 +1519,13 @@ dialog.modal-dialog[open] {
 
 .btn-trailer-search:hover {
   background-color: var(--surface-subtle);
-  border-color: var(--border-strong);
+  border: none;
   color: var(--text-main);
 }
 
 /* Modal Action Buttons: Comprar + Compartir WhatsApp */
 .modal-buy-section {
-  border-top: 1px solid var(--border);
+  border-top: none;
   padding-top: 16px;
   display: flex;
   flex-direction: column;
@@ -1543,20 +1539,19 @@ dialog.modal-dialog[open] {
   gap: 8px;
   height: 40px;
   padding: 0 18px;
-  background-color: transparent;
-  border: 1px solid rgba(37, 211, 102, 0.35);
+  background-color: rgba(37, 211, 102, 0.14);
+  border: none;
   border-radius: var(--radius-sm);
   color: #25d366;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
   width: 100%;
 }
 
 .btn-whatsapp:hover {
-  background-color: rgba(37, 211, 102, 0.08);
-  border-color: #25d366;
+  background-color: rgba(37, 211, 102, 0.22);
   color: #25d366;
 }
 
@@ -1578,7 +1573,7 @@ dialog.modal-dialog[open] {
   min-height: 44px;
   padding: 10px 16px;
   background-color: var(--accent-white);
-  border: 1px solid var(--accent-white);
+  border: none;
   border-radius: var(--radius-sm);
   color: var(--text-inverse);
   font-size: 14px;
@@ -1633,7 +1628,7 @@ dialog.modal-dialog[open] {
   height: 36px;
   padding: 0 16px;
   background-color: var(--surface-raised);
-  border: 1px solid var(--border-strong);
+  border: none;
   border-radius: var(--radius-sm);
   color: var(--text-main);
   font-size: 13px;
@@ -1645,7 +1640,7 @@ dialog.modal-dialog[open] {
 
 .btn-secondary:hover {
   background-color: var(--surface-subtle);
-  border-color: var(--accent-white);
+  border: none;
   color: var(--text-main);
 }
 
@@ -1686,7 +1681,7 @@ a[aria-disabled="true"] {
   height: 44px;
   border-radius: var(--radius-sm);
   background-color: var(--surface);
-  border: 1px solid var(--border);
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1708,7 +1703,7 @@ a[aria-disabled="true"] {
 /* Skeleton loader */
 .skeleton-card {
   background-color: var(--surface);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-md);
   padding: 16px;
   display: flex;
@@ -1750,7 +1745,7 @@ a[aria-disabled="true"] {
   aspect-ratio: 2 / 3;
   border-radius: var(--radius-sm);
   background-color: var(--surface-raised);
-  border: 1px solid var(--border);
+  border: none;
   animation: pulse 1.5s ease-in-out infinite;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
 }
@@ -1829,7 +1824,7 @@ a[aria-disabled="true"] {
   display: inline-flex;
   align-items: center;
   background-color: var(--surface-raised);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-sm);
   padding: 2px;
   gap: 2px;
@@ -1855,7 +1850,7 @@ a[aria-disabled="true"] {
 
 .modal-tab-btn.is-active {
   background-color: var(--surface-subtle);
-  border: 1px solid var(--border-strong);
+  border: none;
   color: var(--text-main);
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
@@ -1867,7 +1862,7 @@ a[aria-disabled="true"] {
 
 .modal-notice-banner {
   background-color: rgba(59, 130, 246, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  border: none;
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   font-size: 12px;
@@ -1885,7 +1880,7 @@ a[aria-disabled="true"] {
 
 .modal-week-day-block {
   background-color: var(--surface-raised);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-sm);
   padding: 12px 14px;
   display: flex;
@@ -1898,8 +1893,7 @@ a[aria-disabled="true"] {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 2px;
 }
 
 .modal-week-day-title {
@@ -1913,14 +1907,14 @@ a[aria-disabled="true"] {
 
 .modal-week-day-badge {
   display: inline-block;
-  padding: 2px 6px;
-  background-color: var(--surface-subtle);
-  border: 1px solid var(--border-strong);
+  padding: 2px 7px;
+  background-color: #2b3140;
+  border: none;
   border-radius: 4px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #60a5fa;
+  color: #ffffff;
   letter-spacing: 0.04em;
 }
 
@@ -1969,9 +1963,9 @@ a[aria-disabled="true"] {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #60a5fa;
-  background-color: rgba(59, 130, 246, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #ffffff;
+  background-color: #2b3140;
+  border: none;
   padding: 3px 8px;
   border-radius: 4px;
 }
@@ -2017,7 +2011,7 @@ a[aria-disabled="true"] {
   justify-content: center;
   padding: 5px 10px;
   background-color: var(--surface-raised);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-xs);
   color: var(--text-main);
   font-size: 12px;
@@ -2110,7 +2104,7 @@ a[aria-disabled="true"] {
   overflow: hidden;
   background-color: var(--surface-raised);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
-  border: 1px solid var(--border);
+  border: none;
 }
 
 .catalog-poster-wrapper img {
@@ -2136,18 +2130,19 @@ a[aria-disabled="true"] {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
   z-index: 2;
   pointer-events: none;
+  border: none;
 }
 
 .poster-badge.is-cartelera {
   background-color: rgba(16, 185, 129, 0.9);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: none;
 }
 
 .poster-badge.is-anticipada {
   background-color: rgba(245, 158, 11, 0.92);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: none;
 }
 
 .catalog-info-wrapper {
@@ -2173,7 +2168,7 @@ a[aria-disabled="true"] {
 
 .btn-primary.is-prompt {
   background-color: var(--surface-raised);
-  border: 1px dashed var(--border-strong);
+  border: none;
   color: var(--text-tertiary);
   cursor: pointer;
   box-shadow: none;
@@ -2181,7 +2176,7 @@ a[aria-disabled="true"] {
 
 .btn-primary.is-prompt:hover {
   background-color: var(--surface-subtle);
-  border-color: var(--text-secondary);
+  border: none;
   color: var(--text-secondary);
   transform: none;
 }
