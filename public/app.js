@@ -6,6 +6,7 @@
 // Application State
 const state = {
   selectedDate: null,
+  lastActiveDate: null, // Remembers last active day when toggling to/from catalog mode
   selectedCinema: (() => {
     try {
       return localStorage.getItem('cartelera_cinema') || '14';
@@ -263,18 +264,11 @@ function renderDateTabs(publishedDates) {
     return { isoDate, label, sublabel };
   });
 
-  // Always add "Todas las películas" tab at the end
-  const allWeekCount = (state.currentData && state.currentData.allWeekMovies) 
-    ? state.currentData.allWeekMovies.length 
-    : '';
-  dateOptions.push({
-    isoDate: 'all',
-    label: 'Todas las películas',
-    sublabel: allWeekCount ? `${allWeekCount} en cartelera` : 'Catálogo'
-  });
-
   if (!state.selectedDate) {
     state.selectedDate = todayArStr;
+  }
+  if (state.selectedDate !== 'all') {
+    state.lastActiveDate = state.selectedDate;
   }
 
   container.innerHTML = '';
@@ -317,12 +311,31 @@ function initDateTabs() {
 
 function selectDate(dateIso, clickedBtn) {
   state.selectedDate = dateIso;
-  
+  const isAll = Boolean(dateIso === 'all');
+  if (!isAll) {
+    state.lastActiveDate = dateIso;
+  }
+
+  // Synchronize View Mode Segmented Control
+  const modeDateBtn = document.getElementById('modeDateBtn');
+  const modeAllBtn = document.getElementById('modeAllBtn');
+  const datesNavWrapper = document.getElementById('datesNavWrapper');
+
+  if (modeDateBtn && modeAllBtn) {
+    modeDateBtn.classList.toggle('is-active', !isAll);
+    modeDateBtn.setAttribute('aria-selected', !isAll ? 'true' : 'false');
+    modeAllBtn.classList.toggle('is-active', isAll);
+    modeAllBtn.setAttribute('aria-selected', isAll ? 'true' : 'false');
+  }
+
+  if (datesNavWrapper) {
+    datesNavWrapper.style.display = isAll ? 'none' : '';
+  }
+
   // Hide filters immediately if switching to "Todas las películas" catalog view
-  const isAllWeek = Boolean(dateIso === 'all');
   const filterRow = document.querySelector('.filter-pills-row');
   if (filterRow) {
-    filterRow.style.display = isAllWeek ? 'none' : 'flex';
+    filterRow.style.display = isAll ? 'none' : 'flex';
   }
   
   const allTabs = document.querySelectorAll('.date-tab');
@@ -332,15 +345,17 @@ function selectDate(dateIso, clickedBtn) {
     t.setAttribute('tabindex', '-1');
   });
 
-  if (!clickedBtn) {
-    clickedBtn = document.querySelector(`.date-tab[data-date="${dateIso}"]`);
-  }
+  if (!isAll) {
+    if (!clickedBtn) {
+      clickedBtn = document.querySelector(`.date-tab[data-date="${dateIso}"]`);
+    }
 
-  if (clickedBtn) {
-    clickedBtn.classList.add('is-active');
-    clickedBtn.setAttribute('aria-selected', 'true');
-    clickedBtn.setAttribute('tabindex', '0');
-    clickedBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    if (clickedBtn) {
+      clickedBtn.classList.add('is-active');
+      clickedBtn.setAttribute('aria-selected', 'true');
+      clickedBtn.setAttribute('tabindex', '0');
+      clickedBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
   }
 
   fetchCartelera(false);
@@ -454,7 +469,7 @@ function renderSkeletons() {
   const countEl = document.getElementById('resultsCount');
   if (countEl) {
     countEl.textContent = isAllWeek 
-      ? 'Cargando todas las películas en cartelera...'
+      ? 'Cargando películas...'
       : 'Consultando cartelera oficial en vivo...';
   }
 }
@@ -610,7 +625,7 @@ function renderBillboard() {
   }
 
   // Update statistics banner with clearly separated states
-  updateStats(processedMovies.length, totalAvailableFunctions, processedOtherMovies.length);
+  updateStats(processedMovies.length, totalAvailableFunctions, processedOtherMovies.length, processedMovies);
 
   // Clear, contextual empty states
   if (processedMovies.length === 0) {
@@ -710,6 +725,7 @@ function renderBillboard() {
                alt="${movie.title}" 
                width="270" 
                height="386" 
+               style="aspect-ratio: 270 / 386;"
                ${imgPriorityAttr}
                onerror="this.onerror=null; this.src='/icon.svg';">
           <span class="poster-badge ${isShowingToday ? 'is-cartelera' : 'is-anticipada'}">
@@ -812,6 +828,7 @@ function renderBillboard() {
              alt="${movie.title}" 
              width="270"
              height="386"
+             style="aspect-ratio: 270 / 386;"
              ${imgPriorityAttr}
              onerror="this.onerror=null; this.src='/icon.svg';">
       </div>
@@ -848,10 +865,10 @@ function renderBillboard() {
     divider.className = 'week-search-divider';
     divider.innerHTML = `
       <div class="week-search-header">
-        <span class="week-search-badge">Programadas otros días de la semana</span>
+        <span class="week-search-badge">Programadas para otras fechas</span>
         <span class="week-search-count">${processedOtherMovies.length} ${processedOtherMovies.length === 1 ? 'película' : 'películas'}</span>
       </div>
-      <p class="week-search-subtitle">Películas en cartelera de Showcase que no se proyectan hoy pero tienen funciones en los próximos días:</p>
+      <p class="week-search-subtitle">Películas en cartelera de Showcase que no se proyectan hoy pero tienen funciones programadas o venta anticipada:</p>
     `;
     container.appendChild(divider);
 
@@ -897,6 +914,7 @@ function renderOtherWeekMovieCard(movie) {
            alt="${movie.title}" 
            width="270"
            height="386"
+           style="aspect-ratio: 270 / 386;"
            loading="lazy"
            onerror="this.onerror=null; this.src='/icon.svg';">
     </div>
@@ -918,7 +936,7 @@ function renderOtherWeekMovieCard(movie) {
       <div class="week-movie-schedule-preview">
         <div class="week-movie-label">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-          <span>Funciones disponibles esta semana:</span>
+          <span>Fechas con funciones disponibles:</span>
         </div>
         <div class="date-chips-row">
           ${chipsHtml || '<span style="font-size: 11px; color: var(--text-tertiary);">Consultar horarios en detalle</span>'}
@@ -1153,7 +1171,7 @@ function openMovieModal(movie) {
   } else {
     dayFormatsHtml = `
       <div class="modal-notice-banner">
-        Esta película no está programada para hoy en este cine. Consultá las fechas disponibles en la pestaña <strong>"Toda la semana"</strong>.
+        Esta película no está programada para hoy en este cine. Consultá las fechas disponibles en la pestaña <strong>"Todas las fechas"</strong>.
       </div>
     `;
   }
@@ -1244,7 +1262,7 @@ function openMovieModal(movie) {
       </div>
     `;
   } else {
-    weekHtml = '<p class="modal-synopsis" style="color: var(--text-muted); padding: 8px 0;">No hay funciones adicionales programadas para esta semana.</p>';
+    weekHtml = '<p class="modal-synopsis" style="color: var(--text-muted); padding: 8px 0;">No hay funciones adicionales programadas en este momento.</p>';
   }
 
   const hasAnyUpcomingToday = hasFormatsToday && movie.formats.some(f => f.times.some(t => typeof t === 'string' || !t.isStarted));
@@ -1253,7 +1271,7 @@ function openMovieModal(movie) {
   modalBody.innerHTML = `
     <div class="modal-hero">
       <div class="modal-poster">
-        <img src="${movie.poster}" alt="${movie.title}" width="270" height="386" onerror="this.onerror=null; this.src='/icon.svg';">
+        <img src="${movie.poster}" alt="${movie.title}" width="270" height="386" style="aspect-ratio: 270 / 386;" onerror="this.onerror=null; this.src='/icon.svg';">
       </div>
       <div class="modal-info">
         <h2 id="modalMovieTitle" class="modal-title">${movie.title}</h2>
@@ -1649,7 +1667,7 @@ window.shareMovieInvitation = shareMovieInvitation;
 /**
  * Updates stats banner with distinct messaging depending on state
  */
-function updateStats(moviesCount, functionsCount, otherCount = 0) {
+function updateStats(moviesCount, functionsCount, otherCount = 0, processedMovies = []) {
   const countEl = document.getElementById('resultsCount');
   if (!countEl) return;
 
@@ -1659,7 +1677,7 @@ function updateStats(moviesCount, functionsCount, otherCount = 0) {
     if (moviesCount === 0) {
       if (otherCount > 0) {
         const otherWord = otherCount === 1 ? 'película programada' : 'películas programadas';
-        countEl.textContent = `${otherCount} ${otherWord} otros días de la semana para "${q}"`;
+        countEl.textContent = `${otherCount} ${otherWord} en otras fechas para "${q}"`;
       } else {
         countEl.textContent = `No se encontraron películas para "${q}"`;
       }
@@ -1689,11 +1707,24 @@ function updateStats(moviesCount, functionsCount, otherCount = 0) {
     return;
   }
 
-  // All week billboard results
+  // All movies catalog results
   const isAllWeek = Boolean(state.currentData && (state.currentData.isAllWeek || state.selectedDate === 'all'));
   if (isAllWeek) {
     const movieWord = moviesCount === 1 ? 'película' : 'películas';
-    countEl.textContent = `${moviesCount} ${movieWord} en cartelera • Tocá una película para ver todos sus horarios y comprar`;
+    const list = Array.isArray(processedMovies) ? processedMovies : [];
+    const carteleraCount = list.filter(m => m.isScheduledToday).length;
+    const anticipadasCount = list.filter(m => !m.isScheduledToday).length;
+
+    let countDetail = '';
+    if (carteleraCount > 0 && anticipadasCount > 0) {
+      countDetail = `${moviesCount} ${movieWord} (${carteleraCount} en cartelera, ${anticipadasCount} ${anticipadasCount === 1 ? 'anticipada' : 'anticipadas'})`;
+    } else if (anticipadasCount > 0) {
+      countDetail = `${moviesCount} ${movieWord} anticipadas`;
+    } else {
+      countDetail = `${moviesCount} ${movieWord} en cartelera`;
+    }
+
+    countEl.textContent = `${countDetail} • Tocá una película para ver horarios`;
     return;
   }
 
@@ -1841,13 +1872,13 @@ function updateDropdownUI() {
   const langBtn = document.getElementById('pillLangBtn');
   if (langLabel && langBtn) {
     if (state.filters.language === 'sub') {
-      langLabel.textContent = 'Idioma: Subtitulada';
+      langLabel.textContent = 'Sub';
       langBtn.classList.add('is-active');
     } else if (state.filters.language === 'dob') {
-      langLabel.textContent = 'Idioma: Doblada';
+      langLabel.textContent = 'Doblada';
       langBtn.classList.add('is-active');
     } else {
-      langLabel.textContent = 'Idioma: Todos';
+      langLabel.textContent = 'Idioma';
       langBtn.classList.remove('is-active');
     }
   }
@@ -1857,19 +1888,19 @@ function updateDropdownUI() {
   const timeBtn = document.getElementById('pillTimeBtn');
   if (timeLabel && timeBtn) {
     if (state.filters.timeBand === '15') {
-      timeLabel.textContent = 'Horario: Desde 15:00';
+      timeLabel.textContent = 'Desde 15h';
       timeBtn.classList.add('is-active');
     } else if (state.filters.timeBand === '18') {
-      timeLabel.textContent = 'Horario: Desde 18:00';
+      timeLabel.textContent = 'Desde 18h';
       timeBtn.classList.add('is-active');
     } else if (state.filters.timeBand === '20') {
-      timeLabel.textContent = 'Horario: Desde 20:00';
+      timeLabel.textContent = 'Desde 20h';
       timeBtn.classList.add('is-active');
     } else if (state.filters.timeBand === '22') {
-      timeLabel.textContent = 'Horario: Desde 22:00';
+      timeLabel.textContent = 'Desde 22h';
       timeBtn.classList.add('is-active');
     } else {
-      timeLabel.textContent = 'Horario: Cualquier hora';
+      timeLabel.textContent = 'Horario';
       timeBtn.classList.remove('is-active');
     }
   }
@@ -1879,13 +1910,13 @@ function updateDropdownUI() {
   const formatBtn = document.getElementById('pillFormatBtn');
   if (formatLabel && formatBtn) {
     if (state.filters.format === '2d') {
-      formatLabel.textContent = 'Formato: Solo 2D';
+      formatLabel.textContent = '2D';
       formatBtn.classList.add('is-active');
     } else if (state.filters.format === '3d') {
-      formatLabel.textContent = 'Formato: Solo 3D';
+      formatLabel.textContent = '3D';
       formatBtn.classList.add('is-active');
     } else {
-      formatLabel.textContent = 'Formato: 2D y 3D';
+      formatLabel.textContent = 'Formato';
       formatBtn.classList.remove('is-active');
     }
   }
@@ -1901,15 +1932,6 @@ function updateDropdownUI() {
       checkEl.textContent = isSelected ? '✓' : '';
     }
   });
-
-  // 5. Clear filters button visibility
-  const hasActiveFilters = state.filters.language !== 'all' || 
-                           state.filters.timeBand !== 'all' || 
-                           state.filters.format !== 'all';
-  const clearBtn = document.getElementById('clearAllFiltersBtn');
-  if (clearBtn) {
-    clearBtn.style.display = hasActiveFilters ? 'inline-flex' : 'none';
-  }
 }
 
 function resetAllFilters() {
@@ -2009,14 +2031,6 @@ function setupEventListeners() {
     });
   });
 
-  // Clear all filters button
-  const clearFiltersBtn = document.getElementById('clearAllFiltersBtn');
-  if (clearFiltersBtn) {
-    clearFiltersBtn.addEventListener('click', () => {
-      resetAllFilters();
-    });
-  }
-
   // Cinema Selector Dropdown button
   const cinemaBtn = document.getElementById('cinemaSelectorBtn');
   if (cinemaBtn) {
@@ -2031,6 +2045,26 @@ function setupEventListeners() {
         cinemaBtn.setAttribute('aria-expanded', 'true');
         showDropdownBackdrop();
       }
+    });
+  }
+
+  // View Mode Segmented Control (Por fecha vs. Todas las películas)
+  const modeDateBtn = document.getElementById('modeDateBtn');
+  const modeAllBtn = document.getElementById('modeAllBtn');
+
+  if (modeDateBtn) {
+    modeDateBtn.addEventListener('click', () => {
+      if (state.selectedDate !== 'all') return;
+      const firstTabDate = document.querySelector('.date-tab')?.dataset?.date;
+      const targetDate = state.lastActiveDate || firstTabDate;
+      selectDate(targetDate);
+    });
+  }
+
+  if (modeAllBtn) {
+    modeAllBtn.addEventListener('click', () => {
+      if (state.selectedDate === 'all') return;
+      selectDate('all');
     });
   }
 

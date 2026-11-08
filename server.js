@@ -77,6 +77,12 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
+  // Local mock for Vercel edge endpoints (Analytics / Insights)
+  if (pathname.startsWith('/_vercel/')) {
+    res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+    return res.end('/* Local Vercel Edge Script Mock */');
+  }
+
   // API Route
   if (pathname === '/api/cartelera' || pathname === '/api/cartelera.js') {
     try {
