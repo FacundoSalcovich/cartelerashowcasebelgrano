@@ -40,7 +40,7 @@
   <meta name="twitter:image" content="https://cartelerashowcasebelgrano.vercel.app/icon.svg">
 
   <!-- Clean, Zero-CDN Native Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=29">
+  <link rel="stylesheet" href="/style.css?v=30">
 
   <!-- Vercel Web Analytics -->
   <script>
@@ -102,22 +102,37 @@
           </div>
         </div>
 
-        <!-- Cinema Selector Dropdown (Belgrano is default) -->
-        <div class="cinema-selector-wrapper" id="dropdownCinemaWrapper">
-          <button type="button" class="cinema-selector-btn" id="cinemaSelectorBtn" aria-expanded="false" aria-label="Seleccionar complejo Showcase">
-            <span class="cinema-pin-icon" aria-hidden="true">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
-            </span>
-            <span class="cinema-current-name" id="currentCinemaName">Belgrano</span>
-            <svg class="dropdown-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="6 9 12 15 18 9"></polyline>
+        <!-- Header Actions: Theme Switcher & Cinema Selector -->
+        <div class="header-actions">
+          <button type="button" 
+                  class="theme-toggle-btn" 
+                  id="themeToggleBtn" 
+                  aria-label="Cambiar estilo de color" 
+                  title="Alternar entre estilo Minimal y Showcase Oficial">
+            <svg class="theme-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor"></path>
             </svg>
+            <span class="theme-label" id="themeLabel">Showcase</span>
           </button>
-          <div class="cinema-menu" id="menuCinema">
-            <!-- Populated dynamically via app.js -->
+
+          <!-- Cinema Selector Dropdown (Belgrano is default) -->
+          <div class="cinema-selector-wrapper" id="dropdownCinemaWrapper">
+            <button type="button" class="cinema-selector-btn" id="cinemaSelectorBtn" aria-expanded="false" aria-label="Seleccionar complejo Showcase">
+              <span class="cinema-pin-icon" aria-hidden="true">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+              </span>
+              <span class="cinema-current-name" id="currentCinemaName">Belgrano</span>
+              <svg class="dropdown-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            <div class="cinema-menu" id="menuCinema">
+              <!-- Populated dynamically via app.js -->
+            </div>
           </div>
         </div>
       </div>
@@ -329,7 +344,7 @@
     </div>
   </footer>
 
-  <script src="/app.js?v=29" defer></script>
+  <script src="/app.js?v=30" defer></script>
 
   <!-- Vercel Web Analytics & Speed Insights (Production) -->
   <script>
