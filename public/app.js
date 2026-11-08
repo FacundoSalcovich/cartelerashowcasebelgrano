@@ -20,8 +20,10 @@ const state = {
     format: 'all'               // 'all' | '2d' | '3d'
   },
   searchQuery: '',
-  modalSelectedTime: null,      // Specific showtime selected inside modal for WhatsApp sharing
+  modalSelectedTime: null,      // Specific showtime selected inside modal for WhatsApp sharing & direct buy
   modalSelectedFormat: null,    // Format of the selected showtime (e.g. 2D Subtitulado)
+  modalDefaultBuyUrl: null,     // Default general buy URL for the currently open movie
+  activeModalMovieId: null,     // Movie ID currently open in detail modal
   cache: new Map(),
   currentData: null,
   isLoading: false,
@@ -405,8 +407,14 @@ function renderBillboard() {
       if (state.filters.format === '3d' && !is3D) continue;
 
       const formatTimes = [];
+      const rawTimes = (fmt.performances && fmt.performances.length > 0)
+        ? fmt.performances
+        : fmt.times;
 
-      for (const timeStr of fmt.times) {
+      for (const item of rawTimes) {
+        const timeStr = typeof item === 'string' ? item : item.time;
+        const buyUrl = (typeof item === 'object' && item.buyUrl) ? item.buyUrl : movie.buyUrl;
+
         // Time band filter
         const showMinutes = timeStringToMinutes(timeStr);
         let minMinutes = 0;
@@ -430,6 +438,7 @@ function renderBillboard() {
         const isStarted = diffMinutes >= 0 && diffMinutes <= 15;
         formatTimes.push({
           time: timeStr,
+          buyUrl,
           isStarted,
           diffMinutes
         });
@@ -554,25 +563,29 @@ function renderBillboard() {
     // Formats HTML (Clean time only, no orange dots, no crowded subtexts)
     const formatsHtml = movie.formats.map(fmt => {
       const timeButtons = fmt.times.map(t => {
+        const timeVal = typeof t === 'string' ? t : t.time;
+        const targetUrl = (typeof t === 'object' && t.buyUrl) ? t.buyUrl : movie.buyUrl;
         if (t.isStarted) {
-          // Started <= 15 min ago (Less prominent dashed style, clean time only, no "En sala" text)
+          // Started <= 15 min ago (Non-clickable indicator, prevents attempting to purchase expired functions)
           const startedText = t.diffMinutes <= 1 ? 'hace 1 minuto' : `hace ${t.diffMinutes} minutos`;
           return `
-            <a href="${movie.buyUrl}" target="_blank" rel="noopener noreferrer" 
-               class="showtime-btn is-started"
+            <span class="showtime-btn is-started"
+               role="button"
+               tabindex="-1"
+               aria-disabled="true"
                onclick="event.stopPropagation();"
-               title="Función iniciada recientemente (${startedText})">
-              ${t.time}
-            </a>
+               title="Función ya iniciada (${startedText}) • Venta online cerrada en Showcase">
+              ${timeVal}
+            </span>
           `;
         }
 
         return `
-          <a href="${movie.buyUrl}" target="_blank" rel="noopener noreferrer" 
+          <a href="${targetUrl}" target="_blank" rel="noopener noreferrer" 
              class="showtime-btn"
              onclick="event.stopPropagation();"
-             title="Comprar entrada para las ${t.time} en Showcase">
-            ${t.time}
+             title="Comprar entrada para las ${timeVal} en Showcase">
+            ${timeVal}
           </a>
         `;
       }).join('');
@@ -630,6 +643,116 @@ function renderBillboard() {
 
     container.appendChild(card);
   });
+
+  // Dynamically synchronize showtimes inside the open modal if viewing today
+  syncOpenModalShowtimes(processedMovies);
+}
+
+/**
+ * Dynamically synchronizes showtimes in the open modal when time advances without page reload
+ */
+function syncOpenModalShowtimes(processedMovies) {
+  const modal = document.getElementById('movieModal');
+  if (!modal || !modal.open || !state.activeModalMovieId) return;
+
+  const currentMovie = (processedMovies || []).find(m => String(m.id) === String(state.activeModalMovieId));
+  const formatsContainer = modal.querySelector('.formats-container');
+  const buySection = modal.querySelector('.modal-buy-section');
+  if (!formatsContainer) return;
+
+  if (!currentMovie) {
+    formatsContainer.innerHTML = '<p class="modal-synopsis" style="color: var(--text-muted); padding: 8px 0;">Todas las funciones de hoy para esta película ya finalizaron.</p>';
+    if (buySection) {
+      buySection.innerHTML = `
+        <button type="button" id="modalBuyBtn" class="btn-primary is-disabled" disabled aria-disabled="true">
+          ${ICONS.ticket} <span id="modalBuyBtnText">Venta online cerrada por hoy</span>
+        </button>
+        <button type="button" class="btn-whatsapp" onclick="shareMovieInvitation('${state.activeModalMovieId}')">
+          ${ICONS.whatsapp} Compartir invitación por WhatsApp
+        </button>
+      `;
+    }
+    return;
+  }
+
+  const formatsHtml = currentMovie.formats.map(fmt => {
+    const buttons = fmt.times.map(t => {
+      const timeVal = typeof t === 'string' ? t : t.time;
+      const targetUrl = (typeof t === 'object' && t.buyUrl) ? t.buyUrl : currentMovie.buyUrl;
+      const isStarted = typeof t === 'object' ? Boolean(t.isStarted) : false;
+      const diffMinutes = typeof t === 'object' ? (t.diffMinutes || 0) : 0;
+
+      if (isStarted) {
+        const startedText = diffMinutes <= 1 ? 'hace 1 minuto' : `hace ${diffMinutes} minutos`;
+        return `
+          <button type="button" 
+             class="showtime-btn modal-showtime-btn is-started"
+             disabled
+             aria-disabled="true"
+             title="Función ya iniciada (${startedText}) • Venta online cerrada en Showcase">
+            ${timeVal}
+          </button>
+        `;
+      }
+
+      const isSelected = state.modalSelectedTime === timeVal;
+      return `
+        <button type="button" 
+           class="showtime-btn modal-showtime-btn ${isSelected ? 'is-selected' : ''}"
+           data-time="${timeVal}"
+           data-format="${escapeHtml(fmt.format)}"
+           data-buyurl="${escapeHtml(targetUrl)}"
+           onclick="toggleModalShowtime(this, '${timeVal}', '${escapeHtml(fmt.format)}', '${escapeHtml(targetUrl)}')"
+           title="Seleccionar horario ${timeVal} (${formatFormatName(fmt.format)})">
+          ${timeVal}
+        </button>
+      `;
+    }).join('');
+
+    return `
+      <div class="format-block">
+        <div class="format-label">
+          <span class="format-tag">${fmt.format}</span>
+        </div>
+        <div class="times-row">
+          ${buttons}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  formatsContainer.innerHTML = formatsHtml;
+
+  // Deselect time if it has started while user had it selected
+  if (state.modalSelectedTime) {
+    const isNowStarted = currentMovie.formats.some(f =>
+      f.times.some(t => typeof t === 'object' && t.time === state.modalSelectedTime && t.isStarted)
+    );
+    if (isNowStarted) {
+      state.modalSelectedTime = null;
+      state.modalSelectedFormat = null;
+    }
+  }
+
+  const hasUpcoming = currentMovie.formats.some(f => f.times.some(t => typeof t === 'string' || !t.isStarted));
+  const buyBtn = document.getElementById('modalBuyBtn');
+  const buyBtnText = document.getElementById('modalBuyBtnText');
+
+  if (!hasUpcoming) {
+    if (buySection) {
+      buySection.innerHTML = `
+        <button type="button" id="modalBuyBtn" class="btn-primary is-disabled" disabled aria-disabled="true">
+          ${ICONS.ticket} <span id="modalBuyBtnText">Venta online cerrada por hoy</span>
+        </button>
+        <button type="button" class="btn-whatsapp" onclick="shareMovieInvitation('${currentMovie.id}')">
+          ${ICONS.whatsapp} Compartir invitación por WhatsApp
+        </button>
+      `;
+    }
+  } else if (buyBtn && !state.modalSelectedTime) {
+    buyBtn.href = currentMovie.buyUrl;
+    if (buyBtnText) buyBtnText.textContent = 'Comprar entradas en Showcase Oficial';
+  }
 }
 
 /**
@@ -640,18 +763,38 @@ function openMovieModal(movie) {
   const modalBody = document.getElementById('modalBody');
   if (!modal || !modalBody) return;
 
+  state.activeModalMovieId = movie.id;
   state.modalSelectedTime = null;
   state.modalSelectedFormat = null;
+  state.modalDefaultBuyUrl = movie.buyUrl;
 
   const formatsHtml = movie.formats.map(fmt => {
     const buttons = fmt.times.map(t => {
       const timeVal = typeof t === 'string' ? t : t.time;
+      const targetUrl = (typeof t === 'object' && t.buyUrl) ? t.buyUrl : movie.buyUrl;
+      const isStarted = typeof t === 'object' ? Boolean(t.isStarted) : false;
+      const diffMinutes = typeof t === 'object' ? (t.diffMinutes || 0) : 0;
+
+      if (isStarted) {
+        const startedText = diffMinutes <= 1 ? 'hace 1 minuto' : `hace ${diffMinutes} minutos`;
+        return `
+          <button type="button" 
+             class="showtime-btn modal-showtime-btn is-started"
+             disabled
+             aria-disabled="true"
+             title="Función ya iniciada (${startedText}) • Venta online cerrada en Showcase">
+            ${timeVal}
+          </button>
+        `;
+      }
+
       return `
         <button type="button" 
            class="showtime-btn modal-showtime-btn"
            data-time="${timeVal}"
            data-format="${escapeHtml(fmt.format)}"
-           onclick="toggleModalShowtime(this, '${timeVal}', '${escapeHtml(fmt.format)}')"
+           data-buyurl="${escapeHtml(targetUrl)}"
+           onclick="toggleModalShowtime(this, '${timeVal}', '${escapeHtml(fmt.format)}', '${escapeHtml(targetUrl)}')"
            title="Seleccionar horario ${timeVal} (${formatFormatName(fmt.format)})">
           ${timeVal}
         </button>
@@ -742,9 +885,18 @@ function openMovieModal(movie) {
     </div>
 
     <div class="modal-buy-section">
-      <a href="${movie.buyUrl}" target="_blank" rel="noopener noreferrer" class="btn-primary">
-        ${ICONS.ticket} Comprar entradas en Showcase Oficial
-      </a>
+      ${movie.formats.some(f => f.times.some(t => typeof t === 'string' || !t.isStarted))
+        ? `
+          <a href="${movie.buyUrl}" id="modalBuyBtn" target="_blank" rel="noopener noreferrer" class="btn-primary">
+            ${ICONS.ticket} <span id="modalBuyBtnText">Comprar entradas en Showcase Oficial</span>
+          </a>
+        `
+        : `
+          <button type="button" id="modalBuyBtn" class="btn-primary is-disabled" disabled aria-disabled="true">
+            ${ICONS.ticket} <span id="modalBuyBtnText">Venta online cerrada por hoy</span>
+          </button>
+        `
+      }
       <button type="button" class="btn-whatsapp" onclick="shareMovieInvitation('${movie.id}')">
         ${ICONS.whatsapp} Compartir invitación por WhatsApp
       </button>
@@ -861,10 +1013,10 @@ function setupSheetGestures(modal) {
 
 /**
  * Toggles selection of a specific showtime inside the detail modal
- * Tap once -> paints with white background (selected)
- * Tap again -> immediately removes white background (deselected)
+ * Tap once -> paints with white background (selected) & syncs direct buy link
+ * Tap again -> immediately removes white background (deselected) & restores default buy link
  */
-function toggleModalShowtime(btn, timeVal, formatName) {
+function toggleModalShowtime(btn, timeVal, formatName, buyUrl) {
   const isAlreadySelected = btn.classList.contains('is-selected');
   const allBtns = document.querySelectorAll('.modal-showtime-btn');
   allBtns.forEach(b => {
@@ -872,13 +1024,28 @@ function toggleModalShowtime(btn, timeVal, formatName) {
     b.blur();
   });
 
+  const buyBtn = document.getElementById('modalBuyBtn');
+  const buyBtnText = document.getElementById('modalBuyBtnText');
+
   if (!isAlreadySelected) {
     btn.classList.add('is-selected');
     state.modalSelectedTime = timeVal;
     state.modalSelectedFormat = formatName;
+    if (buyBtn && buyUrl) {
+      buyBtn.href = buyUrl;
+    }
+    if (buyBtnText) {
+      buyBtnText.textContent = `Comprar función de las ${timeVal} hs en Showcase`;
+    }
   } else {
     state.modalSelectedTime = null;
     state.modalSelectedFormat = null;
+    if (buyBtn && state.modalDefaultBuyUrl) {
+      buyBtn.href = state.modalDefaultBuyUrl;
+    }
+    if (buyBtnText) {
+      buyBtnText.textContent = 'Comprar entradas en Showcase Oficial';
+    }
   }
   btn.blur();
 }
@@ -887,6 +1054,11 @@ window.toggleModalShowtime = toggleModalShowtime;
 function closeMovieModal() {
   const modal = document.getElementById('movieModal');
   if (!modal) return;
+
+  state.activeModalMovieId = null;
+  state.modalSelectedTime = null;
+  state.modalSelectedFormat = null;
+  state.modalDefaultBuyUrl = null;
 
   // Restore background page scroll
   document.documentElement.style.overflow = '';
@@ -1427,10 +1599,59 @@ function setupEventListeners() {
   }
 }
 
+let liveTickerInterval = null;
+
+/**
+ * Checks and recalculates started/expired showtimes live as time advances without full page refresh
+ */
+function checkLiveUpdates() {
+  if (!state.currentData || state.isLoading) return;
+
+  // Don't interrupt user if currently typing in search or holding an open dropdown menu
+  if (document.activeElement === document.getElementById('searchInput')) return;
+  if (document.querySelector('.filter-dropdown-wrapper.is-open, .cinema-selector-wrapper.is-open')) return;
+
+  // Check if calendar day rolled over past midnight in Argentina
+  const currentArDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
+  const firstTabDate = document.querySelector('.date-tab')?.dataset?.date;
+  if (firstTabDate && firstTabDate !== currentArDate) {
+    initDateTabs();
+    fetchCartelera(true);
+    return;
+  }
+
+  // If viewing today's billboard, dynamically re-calculate started & expired functions in real time
+  if (state.currentData.isToday) {
+    renderBillboard();
+  }
+}
+
+/**
+ * Starts background real-time ticker that keeps showtimes updated every 15 seconds
+ */
+function startLiveTicker() {
+  if (liveTickerInterval) clearInterval(liveTickerInterval);
+
+  // Check every 15 seconds
+  liveTickerInterval = setInterval(checkLiveUpdates, 15000);
+
+  // Refresh immediately when user returns to the tab or window regains focus
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      checkLiveUpdates();
+    }
+  });
+
+  window.addEventListener('focus', () => {
+    checkLiveUpdates();
+  });
+}
+
 // Initial bootstrap
 document.addEventListener('DOMContentLoaded', () => {
   renderCinemaDropdown();
   initDateTabs();
   setupEventListeners();
   fetchCartelera(false);
+  startLiveTicker();
 });

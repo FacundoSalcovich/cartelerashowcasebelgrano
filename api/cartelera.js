@@ -232,11 +232,20 @@ async function fetchFilmDataForCinema(filmId, targetDate, cinema) {
   const allTimes = [];
 
   for (const f of cinemaData.formats || []) {
-    const times = (f.performances || []).map(p => p.showTime).sort();
+    const rawPerfs = Array.isArray(f.performances) ? f.performances : [];
+    const performances = rawPerfs.map(p => ({
+      time: p.showTime,
+      perfId: p.performanceId,
+      buyUrl: `https://entradas.todoshowcase.com/showcase/pelicula.aspx?filmid=${filmId}&perf=${p.performanceId}&cinema=${cinema.id}&date=${targetDate}&show=${f.showId || ''}`
+    })).sort((a, b) => a.time.localeCompare(b.time));
+
+    const times = performances.map(p => p.time);
     if (times.length > 0) {
       formats.push({
         format: f.formatDescription,
-        times: times
+        showId: f.showId || '',
+        times: times,
+        performances: performances
       });
       allTimes.push(...times);
     }
