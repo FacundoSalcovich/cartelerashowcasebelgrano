@@ -128,7 +128,7 @@ button, input, select {
    ========================================================================== */
 
 .site-header {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: none;
   background-color: rgba(9, 10, 13, 0.96);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);

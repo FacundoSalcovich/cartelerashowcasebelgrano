@@ -2098,17 +2098,25 @@ function setupEventListeners() {
 
   if (modeDateBtn) {
     modeDateBtn.addEventListener('click', () => {
-      if (state.selectedDate !== 'all') return;
+      if (state.selectedDate !== 'all') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
       const firstTabDate = document.querySelector('.date-tab')?.dataset?.date;
       const targetDate = state.lastActiveDate || firstTabDate;
       selectDate(targetDate);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }
 
   if (modeAllBtn) {
     modeAllBtn.addEventListener('click', () => {
-      if (state.selectedDate === 'all') return;
+      if (state.selectedDate === 'all') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
       selectDate('all');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }
 
