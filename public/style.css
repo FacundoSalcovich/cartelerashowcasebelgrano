@@ -124,16 +124,14 @@ button, input, select {
 }
 
 /* ==========================================================================
-   Header Bar
-   ========================================================================== */
-   Header (Minimalist - matches footer clean aesthetic)
+   Header Bar (Sticky & locked on scroll)
    ========================================================================== */
 
 .site-header {
-  border-bottom: 1px solid var(--border);
-  background-color: rgba(12, 13, 16, 0.94);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background-color: rgba(9, 10, 13, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -196,12 +194,13 @@ button, input, select {
   height: 32px;
   padding: 0 10px;
   background-color: var(--surface-raised);
-  border: 1px solid var(--border-strong);
+  border: none;
   border-radius: var(--radius-sm);
   color: var(--text-main);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   transition: all 0.15s ease;
   user-select: none;
   white-space: nowrap;
@@ -464,7 +463,7 @@ button, input, select {
   min-width: 70px;
   padding: 0 14px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: none;
   background-color: var(--surface);
   color: var(--text-secondary);
   font-family: var(--font-sans);
@@ -551,13 +550,14 @@ button, input, select {
   padding-left: 38px;
   padding-right: 36px;
   background-color: var(--surface);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-sm);
   color: var(--text-main);
   font-family: var(--font-sans);
   font-size: 14px;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: box-shadow 0.15s ease;
 }
 
 @media (max-width: 768px) {
@@ -627,13 +627,14 @@ button, input, select {
   height: 38px;
   padding: 0 14px;
   background-color: var(--surface);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   transition: all 0.15s ease;
   white-space: nowrap;
   user-select: none;
@@ -641,7 +642,7 @@ button, input, select {
 
 .filter-pill-btn:hover {
   background-color: var(--surface-raised);
-  border-color: var(--border-strong);
+  border: none;
   color: var(--text-main);
 }
 
@@ -854,23 +855,23 @@ button, input, select {
 
 .movie-card {
   background-color: var(--surface);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-md);
   padding: 16px;
   display: flex;
   gap: 16px;
   position: relative;
-  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  transition: background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
   cursor: pointer;
   height: 100%; /* Equal height cards */
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
 }
 
 .movie-card:hover {
-  border-color: var(--border-strong);
+  border: none;
   background-color: var(--surface-raised);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
 }
 
 @media (max-width: 540px) {
@@ -887,8 +888,8 @@ button, input, select {
   flex-shrink: 0;
   align-self: center; /* Vertically centered in height - perfectly balanced! */
   position: relative;
-  background-color: var(--surface-raised);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: #090a0e;
+  border: none;
   border-radius: var(--radius-sm);
   overflow: hidden;
   padding: 0;
@@ -909,6 +910,14 @@ button, input, select {
   aspect-ratio: 270 / 386;
   object-fit: cover;
   display: block;
+  transition: transform 0.2s ease;
+}
+
+/* Auto-scale for posters with letterboxing/white bars (e.g. Los juegos del hambre) */
+.poster-column img.has-white-bars,
+.catalog-poster-wrapper img.has-white-bars,
+.modal-poster img.has-white-bars {
+  transform: scale(1.22);
 }
 
 /* Details column: Title on top, showtimes vertically centered, action on bottom */
@@ -976,8 +985,8 @@ button, input, select {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
-  background-color: var(--surface-subtle);
-  border: 1px solid var(--border);
+  background-color: rgba(255, 255, 255, 0.05);
+  border: none;
   padding: 2px 8px;
   border-radius: var(--radius-xs);
 }
@@ -1013,35 +1022,36 @@ button, input, select {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 
 .format-tag {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: var(--radius-xs);
-  font-size: 11px;
+  padding: 0;
+  border-radius: 0;
+  font-size: 11.5px;
   font-weight: 700;
-  background-color: var(--surface-raised);
-  border: 1px solid var(--border-strong);
+  background: transparent;
+  border: none;
   color: var(--text-secondary);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-/* Semantic Senior-friendly Badges: Cyan for Subtitulado, Amber for Doblada */
+/* Clean, borderless and background-less language distinction */
 .format-tag.format-tag-sub {
-  background-color: rgba(56, 189, 248, 0.09);
-  border-color: rgba(56, 189, 248, 0.4);
-  color: #7dd3fc;
+  background: transparent;
+  border: none;
+  color: #38bdf8;
 }
 
 .format-tag.format-tag-dob {
-  background-color: rgba(245, 197, 24, 0.09);
-  border-color: rgba(245, 197, 24, 0.4);
-  color: #fde047;
+  background: transparent;
+  border: none;
+  color: #facc15;
 }
 
 .times-row {
@@ -1051,7 +1061,7 @@ button, input, select {
   width: 100%;
 }
 
-/* Cinema Showtime Ticket Button: Large, tactile, senior-friendly touch target */
+/* Cinema Showtime Ticket Button: Large, tactile, clean borderless pill */
 .showtime-btn {
   display: inline-flex;
   align-items: center;
@@ -1059,8 +1069,8 @@ button, input, select {
   width: 100%;
   height: 38px;
   padding: 0 4px;
-  background-color: #181b24;
-  border: 1px solid #33394a;
+  background-color: #1a1e28;
+  border: none;
   border-radius: var(--radius-sm);
   color: #ffffff;
   font-family: var(--font-sans);
@@ -1086,10 +1096,10 @@ button, input, select {
 
 @media (hover: hover) {
   .showtime-btn:hover:not(.is-selected):not(.is-started) {
-    background-color: #212532;
-    border-color: var(--accent-gold);
-    color: #ffffff;
-    box-shadow: 0 0 10px rgba(245, 197, 24, 0.25);
+    background-color: #242938;
+    border: none;
+    color: var(--accent-gold);
+    box-shadow: 0 0 12px rgba(245, 197, 24, 0.25);
     transform: translateY(-1px);
   }
 }
