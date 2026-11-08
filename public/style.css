@@ -27,7 +27,7 @@
   --date-active-bg: #204891;
   --date-active-color: #ffffff;
   --date-active-sublabel: #e2edff;
-  --date-active-shadow: 0 4px 14px rgba(32, 72, 145, 0.45);
+  --date-active-shadow: none;
   --showtime-bg: #111f38;
   --showtime-hover-bg: #204891;
   --showtime-hover-color: #ffffff;
@@ -523,7 +523,7 @@ button, input, select {
   border: none;
   color: var(--date-active-color);
   font-weight: 800;
-  box-shadow: var(--date-active-shadow);
+  box-shadow: none;
 }
 
 .date-tab .date-sublabel {
@@ -1157,6 +1157,7 @@ button, input, select {
   border-color: var(--showtime-selected-bg) !important;
   color: var(--showtime-selected-color) !important;
   font-weight: 700;
+  box-shadow: none;
 }
 
 /* Card bottom action: Detalles */
@@ -1620,7 +1621,6 @@ dialog.modal-dialog[open] {
 .btn-primary:hover {
   background-color: var(--buy-btn-hover-bg);
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(30, 75, 181, 0.4);
 }
 
 .btn-primary:focus-visible {
@@ -1630,7 +1630,6 @@ dialog.modal-dialog[open] {
 
 .btn-primary:active {
   transform: translateY(1px);
-  box-shadow: none;
 }
 
 .btn-primary.is-disabled,
@@ -1876,7 +1875,7 @@ a[aria-disabled="true"] {
   border: none;
   color: var(--view-mode-active-color);
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  box-shadow: none;
 }
 
 .modal-tab-content.is-hidden {
@@ -2205,9 +2204,9 @@ a[aria-disabled="true"] {
 }
 
 @keyframes schedulePulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
-  50% { transform: scale(1.02); box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
 }
 
 .schedule-pulse-hint {
