@@ -553,7 +553,7 @@ function renderBillboard() {
         const timeStr = typeof item === 'string' ? item : item.time;
         const buyUrl = (typeof item === 'object' && item.buyUrl) ? item.buyUrl : movie.buyUrl;
 
-        // Time band filter
+        // Time band filter with 15-minute tolerance margin (e.g. 17:45+ is included in the 18:00 band)
         const showMinutes = timeStringToMinutes(timeStr);
         let minMinutes = 0;
         if (state.filters.timeBand === '15') minMinutes = 900;       // 15:00
@@ -561,7 +561,7 @@ function renderBillboard() {
         else if (state.filters.timeBand === '20') minMinutes = 1200; // 20:00
         else if (state.filters.timeBand === '22') minMinutes = 1320; // 22:00
 
-        if (minMinutes > 0 && showMinutes < minMinutes) {
+        if (minMinutes > 0 && showMinutes < (minMinutes - 15)) {
           continue;
         }
 
@@ -754,7 +754,13 @@ function renderBillboard() {
     return;
   }
 
-  // Render cards (Uncropped 2:3 poster centered vertically, natural spacing, clean times only)
+  function getFormatTagHtml(formatStr) {
+  const upper = (formatStr || '').toUpperCase();
+  const subClass = upper.includes('SUB') ? 'format-tag-sub' : upper.includes('DOB') ? 'format-tag-dob' : '';
+  return `<span class="format-tag ${subClass}">${formatStr}</span>`;
+}
+
+// Render cards (Uncropped 2:3 poster centered vertically, natural spacing, clean times only)
   processedMovies.forEach((movie, idx) => {
     const card = document.createElement('article');
     card.className = 'movie-card';
@@ -805,7 +811,7 @@ function renderBillboard() {
       return `
         <div class="format-block">
           <div class="format-label">
-            <span class="format-tag">${fmt.format}</span>
+            ${getFormatTagHtml(fmt.format)}
           </div>
           <div class="times-row">
             ${timeButtons}
@@ -1160,7 +1166,7 @@ function openMovieModal(movie) {
       return `
         <div class="format-block">
           <div class="format-label">
-            <span class="format-tag">${fmt.format}</span>
+            ${getFormatTagHtml(fmt.format)}
           </div>
           <div class="times-row">
             ${buttons}
@@ -1229,7 +1235,7 @@ function openMovieModal(movie) {
         return `
           <div class="format-block">
             <div class="format-label">
-              <span class="format-tag">${fmt.format}</span>
+              ${getFormatTagHtml(fmt.format)}
             </div>
             <div class="times-row">
               ${timeButtons}
