@@ -2068,16 +2068,6 @@ function setupEventListeners() {
     });
   }
 
-  // Theme Switcher (Oscuro Minimal vs. Showcase Oficial)
-  const themeToggleBtn = document.getElementById('themeToggleBtn');
-  if (themeToggleBtn) {
-    themeToggleBtn.addEventListener('click', () => {
-      const current = document.documentElement.getAttribute('data-theme') || 'default';
-      const next = current === 'showcase' ? 'default' : 'showcase';
-      setTheme(next);
-    });
-  }
-
   // View Mode Segmented Control (Por fecha vs. Todas las películas)
   const modeDateBtn = document.getElementById('modeDateBtn');
   const modeAllBtn = document.getElementById('modeAllBtn');
@@ -2245,37 +2235,13 @@ function startLiveTicker() {
   });
 }
 
-/**
- * Theme Manager: Minimal (Default) vs. Showcase Oficial
- */
-function setTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  try {
-    localStorage.setItem('showcase_theme', theme);
-  } catch (e) {}
-
-  const themeLabel = document.getElementById('themeLabel');
-  if (themeLabel) {
-    themeLabel.textContent = theme === 'showcase' ? 'Minimal' : 'Showcase';
-  }
-
-  const themeMeta = document.querySelector('meta[name="theme-color"]');
-  if (themeMeta) {
-    themeMeta.content = theme === 'showcase' ? '#070e1c' : '#090a0d';
-  }
-}
-
-function initTheme() {
-  let saved = 'default';
-  try {
-    saved = localStorage.getItem('showcase_theme') || 'default';
-  } catch (e) {}
-  setTheme(saved);
-}
-
 // Initial bootstrap
 document.addEventListener('DOMContentLoaded', () => {
-  initTheme();
+  try {
+    localStorage.removeItem('showcase_theme');
+    document.documentElement.removeAttribute('data-theme');
+  } catch (e) {}
+
   renderCinemaDropdown();
   initDateTabs();
   setupEventListeners();
