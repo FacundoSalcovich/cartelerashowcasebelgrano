@@ -1,6 +1,16 @@
 {
   "outputDirectory": "public",
   "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/(belgrano|norcenter|imax|imax-norcenter|haedo|quilmes|cordoba|villa-allende|rosario)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/(belgrano|norcenter|imax|imax-norcenter|haedo|quilmes|cordoba|villa-allende|rosario)/",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

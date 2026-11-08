@@ -1,6 +1,14 @@
-# Showcase Belgrano - Cartelera Oficial
+# Cines Showcase Argentina - Cartelera Oficial
 
-> Cartelera y horarios en vivo del cine Showcase Belgrano (Monroe 1750, CABA).
+> Cartelera completa y horarios en vivo de todos los complejos Showcase en Argentina.
 
-- [Cartelera Web](https://cartelerashowcase.vercel.app/): Horarios oficiales en vivo para funciones 2D, 3D, dobladas y subtituladas.
-- [API Cartelera](https://cartelerashowcase.vercel.app/api/cartelera): Endpoint JSON con las funciones y películas disponibles.
+- [Showcase Belgrano](https://cartelerashowcase.vercel.app/belgrano): Monroe 1750, Belgrano, CABA
+- [Showcase Norcenter](https://cartelerashowcase.vercel.app/norcenter): Esteban Echeverría 3750, Vicente López
+- [IMAX Theatre Norcenter](https://cartelerashowcase.vercel.app/imax): Mall Norcenter, Vicente López
+- [Showcase Haedo](https://cartelerashowcase.vercel.app/haedo): Av. Dr. Luis Güemes 393, Plaza Oeste Shopping
+- [Showcase Quilmes](https://cartelerashowcase.vercel.app/quilmes): Humberto 1º 299, Quilmes Factory
+- [Showcase Córdoba](https://cartelerashowcase.vercel.app/cordoba): José Antonio de Goyechea 2851, Córdoba Shopping
+- [Showcase Villa Allende](https://cartelerashowcase.vercel.app/villa-allende): Av. Padre Luchesse 3000, VAS Shopping, Córdoba
+- [Showcase Rosario](https://cartelerashowcase.vercel.app/rosario): Junín 501, Alto Rosario Shopping
+
+- [API Cartelera JSON](https://cartelerashowcase.vercel.app/api/cartelera): Endpoint JSON oficial con las funciones y películas disponibles.

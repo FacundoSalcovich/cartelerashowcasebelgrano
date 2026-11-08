@@ -3,11 +3,86 @@
  * Pure modern vanilla JS, Zero external runtime libraries
  */
 
+// Official Showcase complexes fallback with coordinates and addresses for SEO
+const CINEMAS_FALLBACK = [
+  { id: 14, slug: 'belgrano', name: 'Showcase Belgrano', shortName: 'Belgrano', location: 'Belgrano, CABA', address: 'Monroe 1750, Ciudad Autónoma de Buenos Aires' },
+  { id: 13, slug: 'norcenter', name: 'Showcase Norcenter', shortName: 'Norcenter', location: 'Vicente López, GBA', address: 'Esteban Echeverría 3750, Vicente López, Prov. de Buenos Aires' },
+  { id: 18, slug: 'imax', name: 'IMAX Theatre (Norcenter)', shortName: 'IMAX Norcenter', location: 'Vicente López, GBA', address: 'Esteban Echeverría 3750, Vicente López, Prov. de Buenos Aires' },
+  { id: 11, slug: 'haedo', name: 'Showcase Haedo', shortName: 'Haedo', location: 'Haedo, GBA Oeste', address: 'Av. Dr. Luis Güemes 393, Haedo (Plaza Oeste Shopping)' },
+  { id: 15, slug: 'quilmes', name: 'Showcase Quilmes', shortName: 'Quilmes', location: 'Quilmes, GBA Sur', address: 'Humberto 1º 299, Quilmes (Quilmes Factory)' },
+  { id: 12, slug: 'cordoba', name: 'Showcase Córdoba (Villa Cabrera)', shortName: 'Córdoba (Villa Cabrera)', location: 'Córdoba Capital', address: 'José Antonio de Goyechea 2851, Córdoba (Córdoba Shopping)' },
+  { id: 17, slug: 'villa-allende', name: 'Showcase Villa Allende', shortName: 'Villa Allende (Córdoba)', location: 'Villa Allende, Córdoba', address: 'Av. Padre Luchesse 3000, Villa Allende (VAS Shopping)' },
+  { id: 16, slug: 'rosario', name: 'Showcase Rosario', shortName: 'Rosario', location: 'Rosario, Santa Fe', address: 'Junín 501, Rosario, Santa Fe (Alto Rosario Shopping)' }
+];
+
+function getCinemaFromPathname() {
+  try {
+    const rawPath = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+    if (!rawPath) return null;
+    return CINEMAS_FALLBACK.find(c => c.slug === rawPath || (rawPath === 'imax-norcenter' && c.slug === 'imax')) || null;
+  } catch {
+    return null;
+  }
+}
+
+function updatePageMetadata(cinema) {
+  if (!cinema) return;
+  const shortName = cinema.shortName || cinema.name;
+  const cinemaName = cinema.name || `Showcase ${shortName}`;
+  const pageTitle = `Cartelera Showcase ${shortName} • Horarios Oficiales`;
+  document.title = pageTitle;
+
+  const descContent = `Cartelera completa y actualizada de ${cinemaName} (${cinema.location || 'Argentina'}). Funciones, horarios y trailers oficiales en tiempo real.`;
+  const canonicalUrl = `https://cartelerashowcase.vercel.app/${cinema.slug || ''}`;
+
+  const metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc) metaDesc.setAttribute('content', descContent);
+
+  const canonicalLink = document.querySelector('link[rel="canonical"]');
+  if (canonicalLink) canonicalLink.setAttribute('href', canonicalUrl);
+
+  const ogTitle = document.querySelector('meta[property="og:title"]');
+  if (ogTitle) ogTitle.setAttribute('content', pageTitle);
+
+  const ogDesc = document.querySelector('meta[property="og:description"]');
+  if (ogDesc) ogDesc.setAttribute('content', `Consultá la cartelera de ${cinemaName} en tiempo real con horarios oficiales y trailers.`);
+
+  const ogUrl = document.querySelector('meta[property="og:url"]');
+  if (ogUrl) ogUrl.setAttribute('content', canonicalUrl);
+
+  try {
+    const jsonLdScript = document.querySelector('script[type="application/ld+json"]');
+    if (jsonLdScript) {
+      const jsonLdData = {
+        "@context": "https://schema.org",
+        "@type": "MovieTheater",
+        "name": cinemaName,
+        "url": canonicalUrl,
+        "sameAs": "https://entradas.todoshowcase.com/showcase/",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": cinema.address || "",
+          "addressLocality": shortName,
+          "addressRegion": cinema.location || "",
+          "addressCountry": "AR"
+        },
+        "priceRange": "$$",
+        "currenciesAccepted": "ARS"
+      };
+      jsonLdScript.textContent = JSON.stringify(jsonLdData, null, 2);
+    }
+  } catch (e) {}
+}
+
 // Application State
 const state = {
   selectedDate: null,
   lastActiveDate: null, // Remembers last active day when toggling to/from catalog mode
   selectedCinema: (() => {
+    try {
+      const fromPath = getCinemaFromPathname();
+      if (fromPath) return String(fromPath.id);
+    } catch {}
     try {
       return localStorage.getItem('cartelera_cinema') || '14';
     } catch {
@@ -1917,17 +1992,6 @@ function resetSearch() {
   renderBillboard();
 }
 
-const CINEMAS_FALLBACK = [
-  { id: 14, slug: 'belgrano', name: 'Showcase Belgrano', shortName: 'Belgrano', location: 'Belgrano, CABA' },
-  { id: 13, slug: 'norcenter', name: 'Showcase Norcenter', shortName: 'Norcenter', location: 'Vicente López, GBA' },
-  { id: 18, slug: 'imax', name: 'IMAX Theatre (Norcenter)', shortName: 'IMAX Norcenter', location: 'Vicente López, GBA' },
-  { id: 11, slug: 'haedo', name: 'Showcase Haedo', shortName: 'Haedo', location: 'Haedo, GBA Oeste' },
-  { id: 15, slug: 'quilmes', name: 'Showcase Quilmes', shortName: 'Quilmes', location: 'Quilmes, GBA Sur' },
-  { id: 12, slug: 'cordoba', name: 'Showcase Córdoba (Villa Cabrera)', shortName: 'Córdoba (Villa Cabrera)', location: 'Córdoba Capital' },
-  { id: 17, slug: 'villa-allende', name: 'Showcase Villa Allende', shortName: 'Villa Allende (Córdoba)', location: 'Villa Allende, Córdoba' },
-  { id: 16, slug: 'rosario', name: 'Showcase Rosario', shortName: 'Rosario', location: 'Rosario, Santa Fe' }
-];
-
 function renderCinemaDropdown() {
   const menu = document.getElementById('menuCinema');
   const label = document.getElementById('currentCinemaName');
@@ -1945,25 +2009,26 @@ function renderCinemaDropdown() {
   menu.innerHTML = cinemas.map(c => {
     const isSelected = String(c.id) === String(state.selectedCinema);
     return `
-      <button type="button" 
-              class="cinema-menu-item ${isSelected ? 'is-selected' : ''}" 
-              data-cinema-id="${c.id}">
+      <a href="/${c.slug}" 
+         class="cinema-menu-item ${isSelected ? 'is-selected' : ''}" 
+         data-cinema-id="${c.id}">
         <div class="cinema-item-info">
           <span class="cinema-item-name">${escapeHtml(c.name)}</span>
           <span class="cinema-item-location">${escapeHtml(c.location || '')}</span>
         </div>
         <span class="cinema-menu-check">${isSelected ? '✓' : ''}</span>
-      </button>
+      </a>
     `;
   }).join('');
 
   // Item click handlers
   menu.querySelectorAll('.cinema-menu-item').forEach(item => {
     item.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
       const cinemaId = item.dataset.cinemaId;
       if (cinemaId && cinemaId !== state.selectedCinema) {
-        selectCinema(cinemaId);
+        selectCinema(cinemaId, true);
       } else {
         closeAllDropdowns();
       }
@@ -1971,13 +2036,27 @@ function renderCinemaDropdown() {
   });
 }
 
-function selectCinema(cinemaId) {
+function selectCinema(cinemaId, updateHistory = true) {
   state.selectedCinema = String(cinemaId);
   try {
     localStorage.setItem('cartelera_cinema', state.selectedCinema);
   } catch (e) {
     // Ignore localStorage errors
   }
+
+  const cinemas = (state.availableCinemas && state.availableCinemas.length > 0)
+    ? state.availableCinemas
+    : CINEMAS_FALLBACK;
+  const cinemaObj = cinemas.find(c => String(c.id) === String(cinemaId)) || CINEMAS_FALLBACK[0];
+
+  if (updateHistory && cinemaObj && cinemaObj.slug) {
+    const targetPath = `/${cinemaObj.slug}`;
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({ cinemaId: state.selectedCinema, slug: cinemaObj.slug }, '', targetPath);
+    }
+  }
+
+  updatePageMetadata(cinemaObj);
   closeAllDropdowns();
   closeMovieModal();
   renderCinemaDropdown();
@@ -2336,6 +2415,22 @@ function setupEventListeners() {
       closeMovieModal();
     });
   }
+
+  // Footer Cinema Links (Direct seamless SPA navigation)
+  document.querySelectorAll('.footer-cinema-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const slug = (link.getAttribute('data-cinema-slug') || link.getAttribute('href') || '').replace(/^\/+/, '');
+      const cinemas = (state.availableCinemas && state.availableCinemas.length > 0)
+        ? state.availableCinemas
+        : CINEMAS_FALLBACK;
+      const cinema = cinemas.find(c => c.slug === slug);
+      if (cinema && String(cinema.id) !== String(state.selectedCinema)) {
+        selectCinema(cinema.id, true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  });
 }
 
 let liveTickerInterval = null;
@@ -2386,12 +2481,36 @@ function startLiveTicker() {
   });
 }
 
+// Browser history back / forward navigation support
+window.addEventListener('popstate', () => {
+  const fromPath = getCinemaFromPathname();
+  const targetId = fromPath ? String(fromPath.id) : (localStorage.getItem('cartelera_cinema') || '14');
+  if (String(targetId) !== String(state.selectedCinema)) {
+    selectCinema(targetId, false);
+  }
+});
+
 // Initial bootstrap
 document.addEventListener('DOMContentLoaded', () => {
   try {
     localStorage.removeItem('showcase_theme');
     document.documentElement.removeAttribute('data-theme');
   } catch (e) {}
+
+  // Force URL cinema preference if a valid slug is in the URL pathname
+  const fromPath = getCinemaFromPathname();
+  if (fromPath) {
+    state.selectedCinema = String(fromPath.id);
+    try {
+      localStorage.setItem('cartelera_cinema', state.selectedCinema);
+    } catch (e) {}
+  }
+
+  const initialCinema = fromPath ||
+    (state.availableCinemas && state.availableCinemas.length > 0 ? state.availableCinemas : CINEMAS_FALLBACK)
+      .find(c => String(c.id) === String(state.selectedCinema)) ||
+    CINEMAS_FALLBACK[0];
+  updatePageMetadata(initialCinema);
 
   renderCinemaDropdown();
   initDateTabs();
