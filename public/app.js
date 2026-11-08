@@ -415,6 +415,95 @@ window.selectToday = selectToday;
 window.selectTomorrow = selectTomorrow;
 
 /**
+ * Smart Client Pre-Population:
+ * The API already provides `allWeekMovies` with full weekly schedules for the cinema.
+ * We synthesize and populate client cache for "Todas las películas" and all published dates.
+ * This makes switching tabs happen in 0 ms (instantaneous, zero network delay, zero skeleton).
+ */
+function prePopulateCinemaCache(data) {
+  if (!data || !Array.isArray(data.allWeekMovies) || data.allWeekMovies.length === 0) return;
+  const cinemaId = data.cinemaId || state.selectedCinema;
+  const allMovies = data.allWeekMovies;
+
+  // 1. Synthesize and cache "Todas las películas" catalog view
+  const allKey = `${cinemaId}_all`;
+  if (!state.cache.has(allKey)) {
+    const catalogMovies = [...allMovies].sort((a, b) => 
+      a.title.localeCompare(b.title, 'es', { sensitivity: 'base' })
+    );
+    state.cache.set(allKey, {
+      ...data,
+      targetDate: 'all',
+      isToday: false,
+      isAllWeek: true,
+      totalMovies: catalogMovies.length,
+      movies: catalogMovies,
+      otherWeekMovies: []
+    });
+  }
+
+  // 2. Synthesize and cache every published date of the week
+  const todayAr = data.todayDate;
+  const dates = Array.isArray(data.publishedDates) ? data.publishedDates : [];
+
+  for (const dt of dates) {
+    const dateKey = `${cinemaId}_${dt}`;
+    if (state.cache.has(dateKey)) continue;
+
+    const moviesForDate = [];
+    const otherWeekMovies = [];
+
+    for (const m of allMovies) {
+      const dayEntry = (m.weeklySchedule || []).find(s => s.date === dt);
+      if (dayEntry && Array.isArray(dayEntry.formats) && dayEntry.formats.length > 0) {
+        const allTimes = [];
+        for (const f of dayEntry.formats) {
+          allTimes.push(...f.times);
+        }
+        const uniqueSortedTimes = Array.from(new Set(allTimes)).sort();
+        moviesForDate.push({
+          ...m,
+          isScheduledToday: true,
+          formats: dayEntry.formats,
+          times: uniqueSortedTimes,
+          earliestTime: uniqueSortedTimes[0] || null,
+          latestTime: uniqueSortedTimes[uniqueSortedTimes.length - 1] || null
+        });
+      } else {
+        otherWeekMovies.push({
+          ...m,
+          isScheduledToday: false
+        });
+      }
+    }
+
+    moviesForDate.sort((a, b) => (a.earliestTime || '').localeCompare(b.earliestTime || ''));
+    otherWeekMovies.sort((a, b) => a.title.localeCompare(b.title, 'es', { sensitivity: 'base' }));
+
+    state.cache.set(dateKey, {
+      ...data,
+      targetDate: dt,
+      isToday: dt === todayAr,
+      isAllWeek: false,
+      totalMovies: moviesForDate.length,
+      movies: moviesForDate,
+      otherWeekMovies: otherWeekMovies
+    });
+  }
+
+  // 3. Preload above-the-fold posters in background idle time
+  const idlePreload = window.requestIdleCallback || ((cb) => setTimeout(cb, 100));
+  idlePreload(() => {
+    allMovies.slice(0, 10).forEach(m => {
+      if (m.poster) {
+        const img = new Image();
+        img.src = m.poster;
+      }
+    });
+  });
+}
+
+/**
  * Fetches billboard data for selectedDate and selectedCinema with full race-condition protection
  */
 async function fetchCartelera(forceReload = false) {
@@ -431,6 +520,7 @@ async function fetchCartelera(forceReload = false) {
   if (!forceReload && state.cache.has(cacheKey)) {
     state.isLoading = false;
     state.currentData = state.cache.get(cacheKey);
+    prePopulateCinemaCache(state.currentData);
     if (state.currentData.publishedDates) {
       renderDateTabs(state.currentData.publishedDates);
     }
@@ -464,6 +554,7 @@ async function fetchCartelera(forceReload = false) {
     }
     updateFooterAndHeader(data);
     state.cache.set(cacheKey, data);
+    prePopulateCinemaCache(data);
     renderBillboard();
   } catch (err) {
     if (err.name === 'AbortError') {
