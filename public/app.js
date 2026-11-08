@@ -30,6 +30,8 @@ const state = {
   cache: new Map(),
   currentData: null,
   isLoading: false,
+  fetchController: null,
+  activeRequestId: 0,
 };
 
 // Crisp SVG Icons (monochrome, zero CDN dependencies)
@@ -294,7 +296,10 @@ function renderDateTabs(publishedDates) {
     btn.innerHTML = `<span>${opt.label}</span><span class="date-sublabel">${opt.sublabel}</span>`;
 
     btn.addEventListener('click', () => {
-      if (state.selectedDate === opt.isoDate && !state.isLoading) return;
+      if (state.selectedDate === opt.isoDate) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
       selectDate(opt.isoDate, btn);
     });
 
@@ -321,8 +326,14 @@ function initDateTabs() {
 
 function selectDate(dateIso, clickedBtn) {
   const previousIsAll = Boolean(state.selectedDate === 'all');
-  state.selectedDate = dateIso;
   const isAll = Boolean(dateIso === 'all');
+
+  if (state.selectedDate === dateIso) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+
+  state.selectedDate = dateIso;
   if (previousIsAll !== isAll) {
     state._modeSwitched = true;
     window.scrollTo(0, 0);
@@ -373,6 +384,12 @@ function selectDate(dateIso, clickedBtn) {
     }
   }
 
+  // Immediately render the skeleton for the target view if not in memory cache
+  const cacheKey = `${state.selectedCinema}_${state.selectedDate}`;
+  if (!state.cache.has(cacheKey)) {
+    renderSkeletons();
+  }
+
   fetchCartelera(false);
 }
 
@@ -398,15 +415,21 @@ window.selectToday = selectToday;
 window.selectTomorrow = selectTomorrow;
 
 /**
- * Fetches billboard data for selectedDate and selectedCinema
+ * Fetches billboard data for selectedDate and selectedCinema with full race-condition protection
  */
 async function fetchCartelera(forceReload = false) {
-  if (state.isLoading) return;
+  // Cancel previous in-flight request if user rapidly changed tab or cinema
+  if (state.fetchController) {
+    state.fetchController.abort();
+    state.fetchController = null;
+  }
 
+  const requestId = ++state.activeRequestId;
   const cacheKey = `${state.selectedCinema}_${state.selectedDate}`;
 
-  // Use client-side cached data if available and not forced
+  // Instant response if already in client cache
   if (!forceReload && state.cache.has(cacheKey)) {
+    state.isLoading = false;
     state.currentData = state.cache.get(cacheKey);
     if (state.currentData.publishedDates) {
       renderDateTabs(state.currentData.publishedDates);
@@ -419,10 +442,17 @@ async function fetchCartelera(forceReload = false) {
   state.isLoading = true;
   renderSkeletons();
 
+  state.fetchController = new AbortController();
+
   try {
-    const res = await fetch(`/api/cartelera?date=${state.selectedDate}&cinema=${state.selectedCinema}`);
+    const res = await fetch(`/api/cartelera?date=${state.selectedDate}&cinema=${state.selectedCinema}`, {
+      signal: state.fetchController.signal
+    });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
+
+    // Guard against race conditions: ignore response if another request was dispatched
+    if (requestId !== state.activeRequestId) return;
 
     state.currentData = data;
     if (data.availableCinemas && data.availableCinemas.length > 0) {
@@ -436,22 +466,35 @@ async function fetchCartelera(forceReload = false) {
     state.cache.set(cacheKey, data);
     renderBillboard();
   } catch (err) {
+    if (err.name === 'AbortError') {
+      // Aborted intentionally by newer user action - do not render error UI!
+      return;
+    }
+    if (requestId !== state.activeRequestId) return;
     console.error('Error fetching cartelera:', err);
     renderErrorState(err.message);
   } finally {
-    state.isLoading = false;
+    if (requestId === state.activeRequestId) {
+      state.isLoading = false;
+      state.fetchController = null;
+    }
   }
 }
 
 /**
- * Skeleton Loader
+ * Skeleton Loader - Instantly adapts layout to view mode (Catalog Grid vs Day List)
  */
 function renderSkeletons() {
   const container = document.getElementById('movieGrid');
   if (!container) return;
 
-  const isAllWeek = Boolean(state.selectedDate === 'all' || (state.currentData && state.currentData.isAllWeek));
+  const isAllWeek = Boolean(state.selectedDate === 'all');
   container.classList.toggle('is-catalog-grid', isAllWeek);
+
+  const datesNavWrapper = document.getElementById('datesNavWrapper');
+  if (datesNavWrapper) {
+    datesNavWrapper.style.display = isAllWeek ? 'none' : '';
+  }
 
   const filterRow = document.querySelector('.filter-pills-row');
   if (filterRow) {
@@ -677,7 +720,20 @@ function renderBillboard() {
       const filterDesc = getFilterDescription();
       const hasFiltersApplied = Boolean(filterDesc);
 
-      if (hasFiltersApplied) {
+      if (isAllWeek) {
+        container.innerHTML = `
+          <div class="state-message" style="grid-column: 1 / -1;">
+            <div class="state-icon-box">
+              ${ICONS.ticket}
+            </div>
+            <h3 class="state-title">No hay películas en cartelera para este complejo</h3>
+            <p class="state-desc">El complejo seleccionado no cuenta con títulos publicados en este momento. Podés elegir otro complejo o reintentar.</p>
+            <button type="button" class="btn-secondary" onclick="fetchCartelera(true)" style="margin-top: 8px;">
+              Reintentar
+            </button>
+          </div>
+        `;
+      } else if (hasFiltersApplied) {
         container.innerHTML = `
           <div class="state-message" style="grid-column: 1 / -1;">
             <div class="state-icon-box">
@@ -1717,7 +1773,10 @@ function updateStats(moviesCount, functionsCount, otherCount = 0, processedMovie
   if (moviesCount === 0) {
     const filterDesc = getFilterDescription();
     const isToday = Boolean(state.currentData && state.currentData.isToday);
-    if (filterDesc) {
+    const isAllWeek = Boolean(state.selectedDate === 'all' || (state.currentData && state.currentData.isAllWeek));
+    if (isAllWeek) {
+      countEl.textContent = 'No hay películas en cartelera para este complejo';
+    } else if (filterDesc) {
       countEl.textContent = 'No hay funciones para el filtro seleccionado';
     } else if (isToday) {
       countEl.textContent = 'Ya no quedan funciones disponibles por hoy';
@@ -1829,6 +1888,7 @@ function selectCinema(cinemaId) {
     // Ignore localStorage errors
   }
   closeAllDropdowns();
+  closeMovieModal();
   renderCinemaDropdown();
   fetchCartelera(false);
 }
@@ -2209,7 +2269,7 @@ function checkLiveUpdates() {
   }
 
   // If viewing today's billboard, dynamically re-calculate started & expired functions in real time
-  if (state.currentData.isToday) {
+  if (state.currentData && state.currentData.isToday) {
     renderBillboard();
   }
 }
