@@ -211,34 +211,6 @@ function getFormatTagHtml(formatStr) {
   return `<span class="format-tag ${subClass}">${formatStr}</span>`;
 }
 
-/**
- * Detects if a movie poster has baked-in white letterbox bars (e.g. Los juegos del hambre from VoyAlCine)
- * and applies .has-white-bars to zoom the poster artwork cleanly to 100% of the container.
- */
-function detectPosterLetterbox(img) {
-  try {
-    if (!img || !img.complete || img.naturalWidth === 0) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = 16;
-    canvas.height = 16;
-    const ctx = canvas.getContext('2d');
-    
-    // Sample top edge and bottom edge
-    ctx.drawImage(img, img.naturalWidth / 2, 2, 1, 1, 0, 0, 1, 1);
-    const topPixel = ctx.getImageData(0, 0, 1, 1).data;
-    ctx.drawImage(img, img.naturalWidth / 2, img.naturalHeight - 2, 1, 1, 0, 0, 1, 1);
-    const bottomPixel = ctx.getImageData(0, 0, 1, 1).data;
-
-    const isTopWhite = topPixel[0] > 235 && topPixel[1] > 235 && topPixel[2] > 235;
-    const isBottomWhite = bottomPixel[0] > 235 && bottomPixel[1] > 235 && bottomPixel[2] > 235;
-
-    if (isTopWhite || isBottomWhite) {
-      img.classList.add('has-white-bars');
-    }
-  } catch (e) {
-    // If canvas is tainted or error, fallback gracefully
-  }
-}
 
 /**
  * Renders date tabs dynamically based on publishedDates from Showcase
@@ -769,8 +741,6 @@ function renderBillboard() {
                width="270" 
                height="386" 
                style="aspect-ratio: 270 / 386;"
-               crossorigin="anonymous"
-               onload="detectPosterLetterbox(this)"
                ${imgPriorityAttr}
                onerror="this.onerror=null; this.src='/icon.svg';">
           <span class="poster-badge ${isShowingToday ? 'is-cartelera' : 'is-anticipada'}">
@@ -874,8 +844,6 @@ function renderBillboard() {
              width="270"
              height="386"
              style="aspect-ratio: 270 / 386;"
-             crossorigin="anonymous"
-             onload="detectPosterLetterbox(this)"
              ${imgPriorityAttr}
              onerror="this.onerror=null; this.src='/icon.svg';">
       </div>
@@ -967,8 +935,6 @@ function renderOtherWeekMovieCard(movie) {
            width="270"
            height="386"
            style="aspect-ratio: 270 / 386;"
-           crossorigin="anonymous"
-           onload="detectPosterLetterbox(this)"
            loading="lazy"
            onerror="this.onerror=null; this.src='/icon.svg';">
     </div>
@@ -1325,7 +1291,7 @@ function openMovieModal(movie) {
   modalBody.innerHTML = `
     <div class="modal-hero">
       <div class="modal-poster">
-        <img src="${movie.poster}" alt="${movie.title}" width="270" height="386" style="aspect-ratio: 270 / 386;" crossorigin="anonymous" onload="detectPosterLetterbox(this)" onerror="this.onerror=null; this.src='/icon.svg';">
+        <img src="${movie.poster}" alt="${movie.title}" width="270" height="386" style="aspect-ratio: 270 / 386;" onerror="this.onerror=null; this.src='/icon.svg';">
       </div>
       <div class="modal-info">
         <h2 id="modalMovieTitle" class="modal-title">${movie.title}</h2>

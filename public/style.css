@@ -910,14 +910,6 @@ button, input, select {
   aspect-ratio: 270 / 386;
   object-fit: cover;
   display: block;
-  transition: transform 0.2s ease;
-}
-
-/* Auto-scale for posters with letterboxing/white bars (e.g. Los juegos del hambre) */
-.poster-column img.has-white-bars,
-.catalog-poster-wrapper img.has-white-bars,
-.modal-poster img.has-white-bars {
-  transform: scale(1.22);
 }
 
 /* Details column: Title on top, showtimes vertically centered, action on bottom */
