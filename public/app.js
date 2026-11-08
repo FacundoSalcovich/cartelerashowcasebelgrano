@@ -348,8 +348,13 @@ function initDateTabs() {
 }
 
 function selectDate(dateIso, clickedBtn) {
+  const previousIsAll = Boolean(state.selectedDate === 'all');
   state.selectedDate = dateIso;
   const isAll = Boolean(dateIso === 'all');
+  if (previousIsAll !== isAll) {
+    state._modeSwitched = true;
+    window.scrollTo(0, 0);
+  }
   if (!isAll) {
     state.lastActiveDate = dateIso;
   }
@@ -921,6 +926,11 @@ function renderBillboard() {
 
   // Dynamically synchronize showtimes inside the open modal if viewing today
   syncOpenModalShowtimes(processedMovies);
+
+  if (state._modeSwitched) {
+    window.scrollTo(0, 0);
+    state._modeSwitched = false;
+  }
 }
 
 /**
@@ -2102,10 +2112,11 @@ function setupEventListeners() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
+      state._modeSwitched = true;
+      window.scrollTo(0, 0);
       const firstTabDate = document.querySelector('.date-tab')?.dataset?.date;
       const targetDate = state.lastActiveDate || firstTabDate;
       selectDate(targetDate);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }
 
@@ -2115,8 +2126,9 @@ function setupEventListeners() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
+      state._modeSwitched = true;
+      window.scrollTo(0, 0);
       selectDate('all');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }
 

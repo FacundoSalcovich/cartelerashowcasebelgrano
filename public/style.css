@@ -359,9 +359,8 @@ button, input, select {
    ========================================================================== */
 
 .view-mode-wrapper {
-  border-bottom: none;
-  background-color: rgba(12, 13, 16, 0.85);
-  padding-top: 8px;
+  background: transparent;
+  padding-top: 4px;
   padding-bottom: 8px;
 }
 
@@ -433,9 +432,10 @@ button, input, select {
    ========================================================================== */
 
 .dates-nav-wrapper {
-  border-bottom: none;
-  background-color: rgba(15, 17, 21, 0.7);
+  background: transparent;
   overflow: hidden;
+  mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
 }
 
 .dates-nav {
