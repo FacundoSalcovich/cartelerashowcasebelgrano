@@ -2,5 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://cartelerashowcase.vercel.app/sitemap.xml
-Sitemap: https://cartelerashowcasebelgrano.vercel.app/sitemap.xml
 

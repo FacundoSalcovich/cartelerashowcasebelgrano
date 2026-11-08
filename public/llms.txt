@@ -2,5 +2,5 @@
 
 > Cartelera y horarios en vivo del cine Showcase Belgrano (Monroe 1750, CABA).
 
-- [Cartelera Web](https://cartelerashowcasebelgrano.vercel.app/): Horarios oficiales en vivo para funciones 2D, 3D, dobladas y subtituladas.
-- [API Cartelera](https://cartelerashowcasebelgrano.vercel.app/api/cartelera): Endpoint JSON con las funciones y películas disponibles.
+- [Cartelera Web](https://cartelerashowcase.vercel.app/): Horarios oficiales en vivo para funciones 2D, 3D, dobladas y subtituladas.
+- [API Cartelera](https://cartelerashowcase.vercel.app/api/cartelera): Endpoint JSON con las funciones y películas disponibles.
