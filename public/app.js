@@ -22,6 +22,8 @@ const state = {
   searchQuery: '',
   modalSelectedTime: null,      // Specific showtime selected inside modal for WhatsApp sharing & direct buy
   modalSelectedFormat: null,    // Format of the selected showtime (e.g. 2D Subtitulado)
+  modalSelectedDate: null,      // Date ISO of selected showtime (e.g. 2026-11-09)
+  modalActiveTab: 'day',        // 'day' | 'week'
   modalDefaultBuyUrl: null,     // Default general buy URL for the currently open movie
   activeModalMovieId: null,     // Movie ID currently open in detail modal
   cache: new Map(),
@@ -105,6 +107,42 @@ function formatInvitationDate(isoDate) {
 }
 
 /**
+ * Formats an ISO date into compact chip label and full header label
+ */
+function formatScheduleDate(isoDate) {
+  if (!isoDate) return { chipLabel: '', headerLabel: '', badge: '' };
+  const now = new Date();
+  const arDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(now);
+
+  const [tY, tM, tD] = arDateStr.split('-').map(Number);
+  const [sY, sM, sD] = isoDate.split('-').map(Number);
+
+  const todayUtc = Date.UTC(tY, tM - 1, tD);
+  const selUtc = Date.UTC(sY, sM - 1, sD);
+  const diffDays = Math.round((selUtc - todayUtc) / (1000 * 60 * 60 * 24));
+
+  const targetDate = new Date(Date.UTC(sY, sM - 1, sD, 12, 0, 0));
+  const weekdayShort = new Intl.DateTimeFormat('es-AR', { weekday: 'short', timeZone: 'UTC' }).format(targetDate);
+  const weekdayLong = new Intl.DateTimeFormat('es-AR', { weekday: 'long', timeZone: 'UTC' }).format(targetDate);
+  const monthShort = new Intl.DateTimeFormat('es-AR', { month: 'short', timeZone: 'UTC' }).format(targetDate);
+
+  const cleanWeekdayLong = weekdayLong.charAt(0).toUpperCase() + weekdayLong.slice(1);
+  const cleanWeekdayShort = weekdayShort.charAt(0).toUpperCase() + weekdayShort.slice(1).replace('.', '');
+
+  let badge = '';
+  if (diffDays === 0) badge = 'Hoy';
+  else if (diffDays === 1) badge = 'Mañana';
+
+  return {
+    isoDate,
+    diffDays,
+    badge,
+    chipLabel: `${cleanWeekdayShort} ${sD}/${sM}`,
+    headerLabel: `${cleanWeekdayLong} ${sD} de ${monthShort}`
+  };
+}
+
+/**
  * Calculates ending time of a function taking into account 15 min of pre-show ads/trailers
  */
 function calculateEndTime(showTimeStr, durationMinutes, adsMinutes = 15) {
@@ -164,15 +202,13 @@ function getTimeDifferenceMinutes(showTimeStr, currentTimeStr) {
 }
 
 /**
- * Initializes the 7-day selector tabs in Argentina Time
+ * Renders date tabs dynamically based on publishedDates from Showcase
+ * Eliminates empty days and adds 'Toda la semana'
  */
-function initDateTabs() {
+function renderDateTabs(publishedDates) {
   const container = document.getElementById('dateTabs');
   if (!container) return;
 
-  container.innerHTML = '';
-  
-  // Argentina reference date
   const now = new Date();
   const arDateFormatter = new Intl.DateTimeFormat('en-CA', { 
     timeZone: 'America/Argentina/Buenos_Aires', 
@@ -182,40 +218,74 @@ function initDateTabs() {
   });
   const todayArStr = arDateFormatter.format(now); // "YYYY-MM-DD"
   const [tY, tM, tD] = todayArStr.split('-').map(Number);
+  const todayUtc = Date.UTC(tY, tM - 1, tD);
 
-  const dateOptions = [];
+  // If no publishedDates passed yet (initial load), default to today
+  const rawList = Array.isArray(publishedDates) && publishedDates.length > 0
+    ? publishedDates
+    : [todayArStr];
 
-  for (let i = 0; i < 7; i++) {
-    const target = new Date(Date.UTC(tY, tM - 1, tD + i, 12, 0, 0));
-    const year = target.getUTCFullYear();
-    const month = String(target.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(target.getUTCDate()).padStart(2, '0');
-    const isoDate = `${year}-${month}-${day}`;
+  // Only keep dates today or in the future
+  const validDates = rawList.filter(iso => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return Date.UTC(y, m - 1, d) >= todayUtc;
+  }).sort();
 
-    let label = '';
-    const sublabel = `${day}/${month}`;
-
-    if (i === 0) {
-      label = 'Hoy';
-    } else if (i === 1) {
-      label = 'Mañana';
-    } else {
-      const weekday = new Intl.DateTimeFormat('es-AR', { weekday: 'short', timeZone: 'America/Argentina/Buenos_Aires' }).format(target);
-      label = weekday.charAt(0).toUpperCase() + weekday.slice(1, 3);
-    }
-
-    dateOptions.push({ isoDate, label, sublabel });
+  if (!validDates.includes(todayArStr)) {
+    validDates.unshift(todayArStr);
   }
 
-  state.selectedDate = dateOptions[0].isoDate;
+  // Keep dates belonging to current cycle (<= 6 days ahead)
+  const cycleDates = validDates.filter(iso => {
+    const [y, m, d] = iso.split('-').map(Number);
+    const diff = Math.round((Date.UTC(y, m - 1, d) - todayUtc) / (1000 * 60 * 60 * 24));
+    return diff <= 6;
+  });
 
-  dateOptions.forEach((opt, idx) => {
+  const dateOptions = cycleDates.map(isoDate => {
+    const [sY, sM, sD] = isoDate.split('-').map(Number);
+    const selUtc = Date.UTC(sY, sM - 1, sD);
+    const diffDays = Math.round((selUtc - todayUtc) / (1000 * 60 * 60 * 24));
+
+    let label = '';
+    const sublabel = `${String(sD).padStart(2, '0')}/${String(sM).padStart(2, '0')}`;
+
+    if (diffDays === 0) {
+      label = 'Hoy';
+    } else if (diffDays === 1) {
+      label = 'Mañana';
+    } else {
+      const targetDateObj = new Date(Date.UTC(sY, sM - 1, sD, 12, 0, 0));
+      const weekday = new Intl.DateTimeFormat('es-AR', { weekday: 'short', timeZone: 'UTC' }).format(targetDateObj);
+      label = weekday.charAt(0).toUpperCase() + weekday.slice(1, 3).replace('.', '');
+    }
+
+    return { isoDate, label, sublabel };
+  });
+
+  // Always add "Todas las películas" tab at the end
+  const allWeekCount = (state.currentData && state.currentData.allWeekMovies) 
+    ? state.currentData.allWeekMovies.length 
+    : '';
+  dateOptions.push({
+    isoDate: 'all',
+    label: 'Todas las películas',
+    sublabel: allWeekCount ? `${allWeekCount} en cartelera` : 'Catálogo'
+  });
+
+  if (!state.selectedDate) {
+    state.selectedDate = todayArStr;
+  }
+
+  container.innerHTML = '';
+  dateOptions.forEach(opt => {
+    const isActive = state.selectedDate === opt.isoDate;
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = `date-tab ${idx === 0 ? 'is-active' : ''}`;
+    btn.className = `date-tab ${isActive ? 'is-active' : ''}`;
     btn.setAttribute('role', 'tab');
-    btn.setAttribute('aria-selected', idx === 0 ? 'true' : 'false');
-    btn.setAttribute('tabindex', idx === 0 ? '0' : '-1');
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    btn.setAttribute('tabindex', isActive ? '0' : '-1');
     btn.dataset.date = opt.isoDate;
     btn.innerHTML = `<span>${opt.label}</span><span class="date-sublabel">${opt.sublabel}</span>`;
 
@@ -224,7 +294,6 @@ function initDateTabs() {
       selectDate(opt.isoDate, btn);
     });
 
-    // Keyboard navigation (Left / Right arrow between tabs)
     btn.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
         e.preventDefault();
@@ -242,8 +311,19 @@ function initDateTabs() {
   });
 }
 
+function initDateTabs() {
+  renderDateTabs();
+}
+
 function selectDate(dateIso, clickedBtn) {
   state.selectedDate = dateIso;
+  
+  // Hide filters immediately if switching to "Todas las películas" catalog view
+  const isAllWeek = Boolean(dateIso === 'all');
+  const filterRow = document.querySelector('.filter-pills-row');
+  if (filterRow) {
+    filterRow.style.display = isAllWeek ? 'none' : 'flex';
+  }
   
   const allTabs = document.querySelectorAll('.date-tab');
   allTabs.forEach(t => {
@@ -251,6 +331,10 @@ function selectDate(dateIso, clickedBtn) {
     t.setAttribute('aria-selected', 'false');
     t.setAttribute('tabindex', '-1');
   });
+
+  if (!clickedBtn) {
+    clickedBtn = document.querySelector(`.date-tab[data-date="${dateIso}"]`);
+  }
 
   if (clickedBtn) {
     clickedBtn.classList.add('is-active');
@@ -261,6 +345,13 @@ function selectDate(dateIso, clickedBtn) {
 
   fetchCartelera(false);
 }
+
+function jumpToDate(dateIso) {
+  closeMovieModal();
+  selectDate(dateIso);
+}
+window.selectDate = selectDate;
+window.jumpToDate = jumpToDate;
 
 function selectToday() {
   const firstTab = document.querySelector('.date-tab');
@@ -287,6 +378,9 @@ async function fetchCartelera(forceReload = false) {
   // Use client-side cached data if available and not forced
   if (!forceReload && state.cache.has(cacheKey)) {
     state.currentData = state.cache.get(cacheKey);
+    if (state.currentData.publishedDates) {
+      renderDateTabs(state.currentData.publishedDates);
+    }
     updateFooterAndHeader(state.currentData);
     renderBillboard();
     return;
@@ -304,6 +398,9 @@ async function fetchCartelera(forceReload = false) {
     if (data.availableCinemas && data.availableCinemas.length > 0) {
       state.availableCinemas = data.availableCinemas;
       renderCinemaDropdown();
+    }
+    if (data.publishedDates) {
+      renderDateTabs(data.publishedDates);
     }
     updateFooterAndHeader(data);
     state.cache.set(cacheKey, data);
@@ -323,23 +420,42 @@ function renderSkeletons() {
   const container = document.getElementById('movieGrid');
   if (!container) return;
 
-  container.innerHTML = Array.from({ length: 6 }).map(() => `
-    <div class="skeleton-card" aria-hidden="true">
-      <div class="skeleton-poster"></div>
-      <div class="skeleton-details">
-        <div class="skeleton-line" style="width: 70%; height: 18px;"></div>
-        <div class="skeleton-line" style="width: 40%; height: 13px;"></div>
-        <div style="margin-top: 10px; display: flex; gap: 6px;">
-          <div class="skeleton-line" style="width: 58px; height: 32px;"></div>
-          <div class="skeleton-line" style="width: 58px; height: 32px;"></div>
+  const isAllWeek = Boolean(state.selectedDate === 'all' || (state.currentData && state.currentData.isAllWeek));
+  container.classList.toggle('is-catalog-grid', isAllWeek);
+
+  const filterRow = document.querySelector('.filter-pills-row');
+  if (filterRow) {
+    filterRow.style.display = isAllWeek ? 'none' : 'flex';
+  }
+
+  if (isAllWeek) {
+    container.innerHTML = Array.from({ length: 8 }).map(() => `
+      <div class="skeleton-catalog-card" aria-hidden="true">
+        <div class="skeleton-poster-catalog"></div>
+        <div class="skeleton-line" style="width: 75%; height: 14px; margin-top: 2px;"></div>
+      </div>
+    `).join('');
+  } else {
+    container.innerHTML = Array.from({ length: 6 }).map(() => `
+      <div class="skeleton-card" aria-hidden="true">
+        <div class="skeleton-poster"></div>
+        <div class="skeleton-details">
+          <div class="skeleton-line" style="width: 70%; height: 18px;"></div>
+          <div class="skeleton-line" style="width: 40%; height: 13px;"></div>
+          <div style="margin-top: 10px; display: flex; gap: 6px;">
+            <div class="skeleton-line" style="width: 58px; height: 32px;"></div>
+            <div class="skeleton-line" style="width: 58px; height: 32px;"></div>
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `).join('');
+  }
 
   const countEl = document.getElementById('resultsCount');
   if (countEl) {
-    countEl.textContent = 'Consultando cartelera oficial en vivo...';
+    countEl.textContent = isAllWeek 
+      ? 'Cargando todas las películas en cartelera...'
+      : 'Consultando cartelera oficial en vivo...';
   }
 }
 
@@ -376,8 +492,15 @@ function renderBillboard() {
 
   const { movies } = state.currentData;
   const isToday = Boolean(state.currentData.isToday);
+  const isAllWeek = Boolean(state.currentData.isAllWeek || state.selectedDate === 'all');
   const currentLiveTime = getLiveArgentinaTime();
   const query = state.searchQuery.toLowerCase().trim();
+
+  // Hide filter row when viewing "Todas las películas" catalog
+  const filterRow = document.querySelector('.filter-pills-row');
+  if (filterRow) {
+    filterRow.style.display = isAllWeek ? 'none' : 'flex';
+  }
 
   let totalAvailableFunctions = 0;
   const processedMovies = [];
@@ -391,7 +514,7 @@ function renderBillboard() {
     const validFormats = [];
     const allValidUpcomingTimes = [];
 
-    for (const fmt of movie.formats) {
+    for (const fmt of (movie.formats || [])) {
       const desc = fmt.format.toLowerCase();
       const is3D = desc.includes('3d');
       const is2D = desc.includes('2d') || !is3D;
@@ -411,7 +534,7 @@ function renderBillboard() {
         ? fmt.performances
         : fmt.times;
 
-      for (const item of rawTimes) {
+      for (const item of (rawTimes || [])) {
         const timeStr = typeof item === 'string' ? item : item.time;
         const buyUrl = (typeof item === 'object' && item.buyUrl) ? item.buyUrl : movie.buyUrl;
 
@@ -457,7 +580,7 @@ function renderBillboard() {
       }
     }
 
-    if (validFormats.length > 0) {
+    if (validFormats.length > 0 || isAllWeek) {
       allValidUpcomingTimes.sort();
       const earliestUpcoming = allValidUpcomingTimes[0] || null;
 
@@ -474,12 +597,40 @@ function renderBillboard() {
     return a.title.localeCompare(b.title, 'es', { sensitivity: 'base' });
   });
 
+  // Check for matching movies in other days of the week when searching
+  const otherWeekMovies = state.currentData.otherWeekMovies || [];
+  const processedOtherMovies = [];
+  if (query) {
+    for (const movie of otherWeekMovies) {
+      if (movie.title.toLowerCase().includes(query)) {
+        processedOtherMovies.push(movie);
+      }
+    }
+    processedOtherMovies.sort((a, b) => a.title.localeCompare(b.title, 'es', { sensitivity: 'base' }));
+  }
+
   // Update statistics banner with clearly separated states
-  updateStats(processedMovies.length, totalAvailableFunctions);
+  updateStats(processedMovies.length, totalAvailableFunctions, processedOtherMovies.length);
 
   // Clear, contextual empty states
   if (processedMovies.length === 0) {
     if (query) {
+      if (processedOtherMovies.length > 0) {
+        container.innerHTML = `
+          <div class="state-message" style="grid-column: 1 / -1; margin-bottom: 8px;">
+            <div class="state-icon-box">
+              ${ICONS.search}
+            </div>
+            <h3 class="state-title">"${escapeHtml(state.searchQuery.trim())}" no está disponible hoy</h3>
+            <p class="state-desc">Pero encontramos ${processedOtherMovies.length === 1 ? 'esta película programada' : 'estas películas programadas'} en Showcase para los siguientes días:</p>
+          </div>
+        `;
+        processedOtherMovies.forEach(movie => {
+          container.appendChild(renderOtherWeekMovieCard(movie));
+        });
+        return;
+      }
+
       container.innerHTML = `
         <div class="state-message" style="grid-column: 1 / -1;">
           <div class="state-icon-box">
@@ -541,8 +692,53 @@ function renderBillboard() {
     return;
   }
 
-  // Render cards (Uncropped 2:3 poster centered vertically, natural spacing, clean times only)
+  // Set container layout mode (pure poster grid in catalog vs standard list in day view)
+  container.classList.toggle('is-catalog-grid', isAllWeek);
   container.innerHTML = '';
+
+  if (isAllWeek) {
+    // Pure Poster Catalog View: only poster + overlay badge + title
+    processedMovies.forEach((movie, idx) => {
+      const isShowingToday = Boolean(movie.isScheduledToday);
+      const imgPriorityAttr = idx < 4 ? 'fetchpriority="high"' : 'loading="lazy"';
+      const card = document.createElement('article');
+      card.className = 'movie-card-catalog';
+      card.dataset.movieId = movie.id;
+      card.innerHTML = `
+        <div class="catalog-poster-wrapper">
+          <img src="${movie.poster}" 
+               alt="${movie.title}" 
+               width="270" 
+               height="386" 
+               ${imgPriorityAttr}
+               onerror="this.onerror=null; this.src='/icon.svg';">
+          <span class="poster-badge ${isShowingToday ? 'is-cartelera' : 'is-anticipada'}">
+            ${isShowingToday ? 'En cartelera' : 'Anticipada'}
+          </span>
+        </div>
+        <div class="catalog-info-wrapper">
+          <h3 class="catalog-movie-title">${movie.title}</h3>
+        </div>
+      `;
+
+      card.addEventListener('click', () => {
+        if (Date.now() - lastDropdownCloseTime < 350) return;
+        const hasOpenDropdown = document.querySelector('.filter-dropdown-wrapper.is-open, .cinema-selector-wrapper.is-open');
+        if (hasOpenDropdown) {
+          closeAllDropdowns();
+          return;
+        }
+        openMovieModal(movie);
+      });
+
+      container.appendChild(card);
+    });
+
+    syncOpenModalShowtimes(processedMovies);
+    return;
+  }
+
+  // Render cards (Uncropped 2:3 poster centered vertically, natural spacing, clean times only)
   processedMovies.forEach((movie, idx) => {
     const card = document.createElement('article');
     card.className = 'movie-card';
@@ -561,7 +757,7 @@ function renderBillboard() {
     });
 
     // Formats HTML (Clean time only, no orange dots, no crowded subtexts)
-    const formatsHtml = movie.formats.map(fmt => {
+    const formatsHtml = (movie.formats || []).map(fmt => {
       const timeButtons = fmt.times.map(t => {
         const timeVal = typeof t === 'string' ? t : t.time;
         const targetUrl = (typeof t === 'object' && t.buyUrl) ? t.buyUrl : movie.buyUrl;
@@ -602,6 +798,10 @@ function renderBillboard() {
       `;
     }).join('');
 
+    const formatsOrChipsHtml = formatsHtml 
+      ? `<div class="formats-container">${formatsHtml}</div>`
+      : '<p class="modal-synopsis" style="color: var(--text-muted); font-size: 12px; margin: 6px 0;">Sin funciones disponibles para esta fecha.</p>';
+
     // LCP Priority: elevate loading for the first 2 above-the-fold images; lazy load the rest
     const imgPriorityAttr = idx < 2 ? 'fetchpriority="high"' : 'loading="lazy"';
 
@@ -629,9 +829,7 @@ function renderBillboard() {
           </div>
         </header>
 
-        <div class="formats-container">
-          ${formatsHtml}
-        </div>
+        ${formatsOrChipsHtml}
 
         <div class="card-footer-action">
           <button type="button" class="btn-open-detail">
@@ -644,9 +842,129 @@ function renderBillboard() {
     container.appendChild(card);
   });
 
+  // If there are also matching movies on other days of the week when searching, render section divider & cards
+  if (query && processedOtherMovies.length > 0) {
+    const divider = document.createElement('div');
+    divider.className = 'week-search-divider';
+    divider.innerHTML = `
+      <div class="week-search-header">
+        <span class="week-search-badge">Programadas otros días de la semana</span>
+        <span class="week-search-count">${processedOtherMovies.length} ${processedOtherMovies.length === 1 ? 'película' : 'películas'}</span>
+      </div>
+      <p class="week-search-subtitle">Películas en cartelera de Showcase que no se proyectan hoy pero tienen funciones en los próximos días:</p>
+    `;
+    container.appendChild(divider);
+
+    processedOtherMovies.forEach(movie => {
+      container.appendChild(renderOtherWeekMovieCard(movie));
+    });
+  }
+
   // Dynamically synchronize showtimes inside the open modal if viewing today
   syncOpenModalShowtimes(processedMovies);
 }
+
+/**
+ * Renders a movie card specifically formatted for week search results with date chips
+ */
+function renderOtherWeekMovieCard(movie) {
+  const card = document.createElement('article');
+  card.className = 'movie-card movie-card-week';
+  card.dataset.movieId = movie.id;
+
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('button, a')) return;
+    if (Date.now() - lastDropdownCloseTime < 350) return;
+    openMovieModal(movie);
+  });
+
+  const availableDates = Array.isArray(movie.availableDates) ? movie.availableDates : [];
+  const chipsHtml = availableDates.map(d => {
+    const dInfo = formatScheduleDate(d);
+    return `
+      <button type="button" 
+         class="date-chip-btn" 
+         onclick="event.stopPropagation(); jumpToDate('${d}');"
+         title="Ver cartelera del ${dInfo.chipLabel}">
+        ${dInfo.chipLabel}
+      </button>
+    `;
+  }).join('');
+
+  card.innerHTML = `
+    <div class="poster-column">
+      <img src="${movie.poster}" 
+           alt="${movie.title}" 
+           width="270"
+           height="386"
+           loading="lazy"
+           onerror="this.onerror=null; this.src='/icon.svg';">
+    </div>
+
+    <div class="details-column">
+      <header class="card-header">
+        <h2 class="movie-title">
+          <button type="button" class="movie-title-btn">
+            ${movie.title}
+          </button>
+        </h2>
+        <div class="meta-chips-row">
+          ${movie.genre ? `<span class="meta-chip">${movie.genre}</span>` : ''}
+          ${movie.duration ? `<span class="meta-chip mono">${formatDuration(movie.duration)}</span>` : ''}
+          ${movie.rating ? `<span class="meta-chip mono">${movie.rating}</span>` : ''}
+        </div>
+      </header>
+
+      <div class="week-movie-schedule-preview">
+        <div class="week-movie-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <span>Funciones disponibles esta semana:</span>
+        </div>
+        <div class="date-chips-row">
+          ${chipsHtml || '<span style="font-size: 11px; color: var(--text-tertiary);">Consultar horarios en detalle</span>'}
+        </div>
+      </div>
+
+      <div class="card-footer-action">
+        <button type="button" class="btn-open-detail">
+          ${ICONS.info} Ver días y horarios
+        </button>
+      </div>
+    </div>
+  `;
+
+  return card;
+}
+
+/**
+ * Switches between day and full-week view inside the movie modal
+ */
+function switchModalTab(tabName) {
+  state.modalActiveTab = tabName;
+  const tabBtnDay = document.getElementById('tabBtnDay');
+  const tabBtnWeek = document.getElementById('tabBtnWeek');
+  const dayView = document.getElementById('modalDayView');
+  const weekView = document.getElementById('modalWeekView');
+
+  if (tabBtnDay && tabBtnWeek && dayView && weekView) {
+    if (tabName === 'day') {
+      tabBtnDay.classList.add('is-active');
+      tabBtnDay.setAttribute('aria-selected', 'true');
+      tabBtnWeek.classList.remove('is-active');
+      tabBtnWeek.setAttribute('aria-selected', 'false');
+      dayView.classList.remove('is-hidden');
+      weekView.classList.add('is-hidden');
+    } else {
+      tabBtnDay.classList.remove('is-active');
+      tabBtnDay.setAttribute('aria-selected', 'false');
+      tabBtnWeek.classList.add('is-active');
+      tabBtnWeek.setAttribute('aria-selected', 'true');
+      dayView.classList.add('is-hidden');
+      weekView.classList.remove('is-hidden');
+    }
+  }
+}
+window.switchModalTab = switchModalTab;
 
 /**
  * Dynamically synchronizes showtimes in the open modal when time advances without page reload
@@ -655,8 +973,11 @@ function syncOpenModalShowtimes(processedMovies) {
   const modal = document.getElementById('movieModal');
   if (!modal || !modal.open || !state.activeModalMovieId) return;
 
+  const dayView = document.getElementById('modalDayView');
+  if (!dayView || dayView.classList.contains('is-hidden')) return;
+
   const currentMovie = (processedMovies || []).find(m => String(m.id) === String(state.activeModalMovieId));
-  const formatsContainer = modal.querySelector('.formats-container');
+  const formatsContainer = dayView.querySelector('.formats-container');
   const buySection = modal.querySelector('.modal-buy-section');
   if (!formatsContainer) return;
 
@@ -695,14 +1016,15 @@ function syncOpenModalShowtimes(processedMovies) {
         `;
       }
 
-      const isSelected = state.modalSelectedTime === timeVal;
+      const isSelected = state.modalSelectedTime === timeVal && (!state.modalSelectedDate || state.modalSelectedDate === state.selectedDate);
       return `
         <button type="button" 
            class="showtime-btn modal-showtime-btn ${isSelected ? 'is-selected' : ''}"
            data-time="${timeVal}"
            data-format="${escapeHtml(fmt.format)}"
            data-buyurl="${escapeHtml(targetUrl)}"
-           onclick="toggleModalShowtime(this, '${timeVal}', '${escapeHtml(fmt.format)}', '${escapeHtml(targetUrl)}')"
+           data-date="${state.selectedDate || ''}"
+           onclick="toggleModalShowtime(this, '${timeVal}', '${escapeHtml(fmt.format)}', '${escapeHtml(targetUrl)}', '${state.selectedDate || ''}')"
            title="Seleccionar horario ${timeVal} (${formatFormatName(fmt.format)})">
           ${timeVal}
         </button>
@@ -724,13 +1046,14 @@ function syncOpenModalShowtimes(processedMovies) {
   formatsContainer.innerHTML = formatsHtml;
 
   // Deselect time if it has started while user had it selected
-  if (state.modalSelectedTime) {
+  if (state.modalSelectedTime && (!state.modalSelectedDate || state.modalSelectedDate === state.selectedDate)) {
     const isNowStarted = currentMovie.formats.some(f =>
       f.times.some(t => typeof t === 'object' && t.time === state.modalSelectedTime && t.isStarted)
     );
     if (isNowStarted) {
       state.modalSelectedTime = null;
       state.modalSelectedFormat = null;
+      state.modalSelectedDate = null;
     }
   }
 
@@ -739,7 +1062,7 @@ function syncOpenModalShowtimes(processedMovies) {
   const buyBtnText = document.getElementById('modalBuyBtnText');
 
   if (!hasUpcoming) {
-    if (buySection) {
+    if (buySection && !state.modalSelectedTime) {
       buySection.innerHTML = `
         <button type="button" id="modalBuyBtn" class="btn-primary is-disabled" disabled aria-disabled="true">
           ${ICONS.ticket} <span id="modalBuyBtnText">Venta online cerrada por hoy</span>
@@ -750,8 +1073,12 @@ function syncOpenModalShowtimes(processedMovies) {
       `;
     }
   } else if (buyBtn && !state.modalSelectedTime) {
-    buyBtn.href = currentMovie.buyUrl;
-    if (buyBtnText) buyBtnText.textContent = 'Comprar entradas en Showcase Oficial';
+    buyBtn.href = '#';
+    buyBtn.removeAttribute('target');
+    buyBtn.removeAttribute('rel');
+    buyBtn.classList.add('is-prompt');
+    buyBtn.setAttribute('aria-disabled', 'true');
+    if (buyBtnText) buyBtnText.textContent = 'Seleccioná un horario para comprar';
   }
 }
 
@@ -766,52 +1093,162 @@ function openMovieModal(movie) {
   state.activeModalMovieId = movie.id;
   state.modalSelectedTime = null;
   state.modalSelectedFormat = null;
+  state.modalSelectedDate = null;
   state.modalDefaultBuyUrl = movie.buyUrl;
 
-  const formatsHtml = movie.formats.map(fmt => {
-    const buttons = fmt.times.map(t => {
-      const timeVal = typeof t === 'string' ? t : t.time;
-      const targetUrl = (typeof t === 'object' && t.buyUrl) ? t.buyUrl : movie.buyUrl;
-      const isStarted = typeof t === 'object' ? Boolean(t.isStarted) : false;
-      const diffMinutes = typeof t === 'object' ? (t.diffMinutes || 0) : 0;
+  const weeklySchedule = Array.isArray(movie.weeklySchedule) ? movie.weeklySchedule : [];
+  const hasFormatsToday = Array.isArray(movie.formats) && movie.formats.length > 0;
+  const isAllWeekView = Boolean(state.currentData && (state.currentData.isAllWeek || state.selectedDate === 'all'));
+  const isWeekDefault = isAllWeekView || !movie.isScheduledToday || !hasFormatsToday;
+  state.modalActiveTab = isWeekDefault ? 'week' : 'day';
 
-      if (isStarted) {
-        const startedText = diffMinutes <= 1 ? 'hace 1 minuto' : `hace ${diffMinutes} minutos`;
+  // 1. Day view HTML
+  let dayFormatsHtml = '';
+  if (hasFormatsToday) {
+    dayFormatsHtml = movie.formats.map(fmt => {
+      const buttons = fmt.times.map(t => {
+        const timeVal = typeof t === 'string' ? t : t.time;
+        const targetUrl = (typeof t === 'object' && t.buyUrl) ? t.buyUrl : movie.buyUrl;
+        const isStarted = typeof t === 'object' ? Boolean(t.isStarted) : false;
+        const diffMinutes = typeof t === 'object' ? (t.diffMinutes || 0) : 0;
+
+        if (isStarted) {
+          const startedText = diffMinutes <= 1 ? 'hace 1 minuto' : `hace ${diffMinutes} minutos`;
+          return `
+            <button type="button" 
+               class="showtime-btn modal-showtime-btn is-started"
+               disabled
+               aria-disabled="true"
+               title="Función ya iniciada (${startedText}) • Venta online cerrada en Showcase">
+              ${timeVal}
+            </button>
+          `;
+        }
+
         return `
           <button type="button" 
-             class="showtime-btn modal-showtime-btn is-started"
-             disabled
-             aria-disabled="true"
-             title="Función ya iniciada (${startedText}) • Venta online cerrada en Showcase">
+             class="showtime-btn modal-showtime-btn"
+             data-time="${timeVal}"
+             data-format="${escapeHtml(fmt.format)}"
+             data-buyurl="${escapeHtml(targetUrl)}"
+             data-date="${state.selectedDate || ''}"
+             onclick="toggleModalShowtime(this, '${timeVal}', '${escapeHtml(fmt.format)}', '${escapeHtml(targetUrl)}', '${state.selectedDate || ''}')"
+             title="Seleccionar horario ${timeVal} (${formatFormatName(fmt.format)})">
             ${timeVal}
           </button>
         `;
-      }
+      }).join('');
 
       return `
-        <button type="button" 
-           class="showtime-btn modal-showtime-btn"
-           data-time="${timeVal}"
-           data-format="${escapeHtml(fmt.format)}"
-           data-buyurl="${escapeHtml(targetUrl)}"
-           onclick="toggleModalShowtime(this, '${timeVal}', '${escapeHtml(fmt.format)}', '${escapeHtml(targetUrl)}')"
-           title="Seleccionar horario ${timeVal} (${formatFormatName(fmt.format)})">
-          ${timeVal}
-        </button>
+        <div class="format-block">
+          <div class="format-label">
+            <span class="format-tag">${fmt.format}</span>
+          </div>
+          <div class="times-row">
+            ${buttons}
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    dayFormatsHtml = `
+      <div class="modal-notice-banner">
+        Esta película no está programada para hoy en este cine. Consultá las fechas disponibles en la pestaña <strong>"Toda la semana"</strong>.
+      </div>
+    `;
+  }
+
+  // 2. Week view HTML (All available days and times)
+  let weekHtml = '';
+  if (weeklySchedule.length > 0) {
+    const weekDaysHtml = weeklySchedule.map(day => {
+      const dateInfo = formatScheduleDate(day.date);
+      const isDayToday = (state.currentData && state.currentData.targetDate === day.date && state.currentData.isToday);
+      const currentLiveTime = getLiveArgentinaTime();
+
+      const dayFormatsHtml = (day.formats || []).map(fmt => {
+        const timeButtons = (fmt.performances || fmt.times || []).map(p => {
+          const timeVal = typeof p === 'string' ? p : p.time;
+          const targetUrl = (typeof p === 'object' && p.buyUrl) ? p.buyUrl : movie.buyUrl;
+
+          let isStarted = false;
+          let diffMinutes = 0;
+          if (isDayToday) {
+            diffMinutes = getTimeDifferenceMinutes(timeVal, currentLiveTime);
+            if (diffMinutes > 15) return '';
+            isStarted = diffMinutes >= 0 && diffMinutes <= 15;
+          }
+
+          if (isStarted) {
+            const startedText = diffMinutes <= 1 ? 'hace 1 minuto' : `hace ${diffMinutes} minutos`;
+            return `
+              <button type="button" 
+                 class="showtime-btn modal-showtime-btn is-started"
+                 disabled
+                 aria-disabled="true"
+                 title="Función ya iniciada (${startedText}) • Venta online cerrada">
+                ${timeVal}
+              </button>
+            `;
+          }
+
+          return `
+            <button type="button" 
+               class="showtime-btn modal-showtime-btn"
+               data-time="${timeVal}"
+               data-date="${day.date}"
+               data-format="${escapeHtml(fmt.format)}"
+               data-buyurl="${escapeHtml(targetUrl)}"
+               onclick="toggleModalShowtime(this, '${timeVal}', '${escapeHtml(fmt.format)}', '${escapeHtml(targetUrl)}', '${day.date}')"
+               title="Seleccionar ${timeVal} (${formatFormatName(fmt.format)}) del ${dateInfo.chipLabel}">
+              ${timeVal}
+            </button>
+          `;
+        }).filter(Boolean).join('');
+
+        if (!timeButtons) return '';
+
+        return `
+          <div class="format-block">
+            <div class="format-label">
+              <span class="format-tag">${fmt.format}</span>
+            </div>
+            <div class="times-row">
+              ${timeButtons}
+            </div>
+          </div>
+        `;
+      }).filter(Boolean).join('');
+
+      return `
+        <div class="modal-week-day-block">
+          <div class="modal-week-day-header">
+            <div class="modal-week-day-title">
+              ${dateInfo.badge ? `<span class="modal-week-day-badge">${dateInfo.badge}</span>` : ''}
+              <span>${dateInfo.headerLabel}</span>
+            </div>
+            <button type="button" class="btn-jump-day" onclick="jumpToDate('${day.date}')" title="Ver toda la cartelera del ${dateInfo.chipLabel}">
+              Ver día completo →
+            </button>
+          </div>
+          <div class="formats-container">
+            ${dayFormatsHtml || '<p class="modal-synopsis" style="color: var(--text-muted); font-size: 12px; margin: 4px 0;">Sin funciones disponibles para esta fecha.</p>'}
+          </div>
+        </div>
       `;
     }).join('');
 
-    return `
-      <div class="format-block">
-        <div class="format-label">
-          <span class="format-tag">${fmt.format}</span>
-        </div>
-        <div class="times-row">
-          ${buttons}
-        </div>
+    weekHtml = `
+      <div class="modal-week-list">
+        ${weekDaysHtml}
       </div>
     `;
-  }).join('');
+  } else {
+    weekHtml = '<p class="modal-synopsis" style="color: var(--text-muted); padding: 8px 0;">No hay funciones adicionales programadas para esta semana.</p>';
+  }
+
+  const hasAnyUpcomingToday = hasFormatsToday && movie.formats.some(f => f.times.some(t => typeof t === 'string' || !t.isStarted));
+  const hasAnyUpcomingWeek = weeklySchedule.length > 0;
 
   modalBody.innerHTML = `
     <div class="modal-hero">
@@ -876,19 +1313,46 @@ function openMovieModal(movie) {
       `}
     </div>
 
-    <!-- Formats & Showtimes -->
+    <!-- Formats & Showtimes (With Day / Week Tabs) -->
     <div class="modal-section-block">
-      <span class="modal-section-label">Horarios en ${escapeHtml(state.currentData ? state.currentData.cinema : 'Showcase')}</span>
-      <div class="formats-container">
-        ${formatsHtml}
+      <div class="modal-schedule-header">
+        <span class="modal-section-label">Horarios en ${escapeHtml(state.currentData ? state.currentData.cinema : 'Showcase')}</span>
+        <div class="modal-schedule-tabs" role="tablist">
+          <button type="button" 
+             id="tabBtnDay" 
+             class="modal-tab-btn ${isWeekDefault ? '' : 'is-active'}" 
+             role="tab" 
+             aria-selected="${isWeekDefault ? 'false' : 'true'}"
+             onclick="switchModalTab('day')">
+            ${state.currentData && state.currentData.isToday ? 'Hoy' : 'Este día'}
+          </button>
+          <button type="button" 
+             id="tabBtnWeek" 
+             class="modal-tab-btn ${isWeekDefault ? 'is-active' : ''}" 
+             role="tab" 
+             aria-selected="${isWeekDefault ? 'true' : 'false'}"
+             onclick="switchModalTab('week')">
+            Todas
+          </button>
+        </div>
+      </div>
+
+      <div id="modalDayView" class="modal-tab-content ${isWeekDefault ? 'is-hidden' : ''}">
+        <div class="formats-container">
+          ${dayFormatsHtml}
+        </div>
+      </div>
+
+      <div id="modalWeekView" class="modal-tab-content ${isWeekDefault ? '' : 'is-hidden'}">
+        ${weekHtml}
       </div>
     </div>
 
     <div class="modal-buy-section">
-      ${movie.formats.some(f => f.times.some(t => typeof t === 'string' || !t.isStarted))
+      ${hasAnyUpcomingToday || hasAnyUpcomingWeek
         ? `
-          <a href="${movie.buyUrl}" id="modalBuyBtn" target="_blank" rel="noopener noreferrer" class="btn-primary">
-            ${ICONS.ticket} <span id="modalBuyBtnText">Comprar entradas en Showcase Oficial</span>
+          <a href="#" id="modalBuyBtn" class="btn-primary is-prompt" aria-disabled="true">
+            ${ICONS.ticket} <span id="modalBuyBtnText">Seleccioná un horario para comprar</span>
           </a>
         `
         : `
@@ -902,6 +1366,22 @@ function openMovieModal(movie) {
       </button>
     </div>
   `;
+
+  // Guide prompt if clicked before selecting a showtime
+  const modalBuyBtnEl = modal.querySelector('#modalBuyBtn');
+  if (modalBuyBtnEl) {
+    modalBuyBtnEl.addEventListener('click', (e) => {
+      if (modalBuyBtnEl.classList.contains('is-prompt') || modalBuyBtnEl.getAttribute('aria-disabled') === 'true') {
+        e.preventDefault();
+        const hintEl = modal.querySelector('.modal-schedule-tabs') || modal.querySelector('.formats-container') || modal.querySelector('.modal-week-list');
+        if (hintEl) {
+          hintEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          hintEl.classList.add('schedule-pulse-hint');
+          setTimeout(() => hintEl.classList.remove('schedule-pulse-hint'), 800);
+        }
+      }
+    });
+  }
 
   // Inmovilize background page scroll
   document.documentElement.style.overflow = 'hidden';
@@ -1016,7 +1496,7 @@ function setupSheetGestures(modal) {
  * Tap once -> paints with white background (selected) & syncs direct buy link
  * Tap again -> immediately removes white background (deselected) & restores default buy link
  */
-function toggleModalShowtime(btn, timeVal, formatName, buyUrl) {
+function toggleModalShowtime(btn, timeVal, formatName, buyUrl, dateIso) {
   const isAlreadySelected = btn.classList.contains('is-selected');
   const allBtns = document.querySelectorAll('.modal-showtime-btn');
   allBtns.forEach(b => {
@@ -1031,20 +1511,36 @@ function toggleModalShowtime(btn, timeVal, formatName, buyUrl) {
     btn.classList.add('is-selected');
     state.modalSelectedTime = timeVal;
     state.modalSelectedFormat = formatName;
-    if (buyBtn && buyUrl) {
-      buyBtn.href = buyUrl;
+    state.modalSelectedDate = dateIso || state.selectedDate;
+
+    const dateInfo = dateIso ? formatScheduleDate(dateIso) : null;
+    const isTodayDate = Boolean(state.currentData && state.currentData.targetDate === dateIso && state.currentData.isToday);
+    const dateSuffix = (dateInfo && !isTodayDate && dateInfo.chipLabel) ? ` • ${dateInfo.chipLabel}` : '';
+
+    if (buyBtn) {
+      if (buyUrl) buyBtn.href = buyUrl;
+      buyBtn.target = '_blank';
+      buyBtn.rel = 'noopener noreferrer';
+      buyBtn.classList.remove('is-disabled', 'is-prompt');
+      buyBtn.removeAttribute('disabled');
+      buyBtn.removeAttribute('aria-disabled');
     }
     if (buyBtnText) {
-      buyBtnText.textContent = `Comprar función de las ${timeVal} hs en Showcase`;
+      buyBtnText.textContent = `Comprar función ${timeVal} hs${dateSuffix}`;
     }
   } else {
     state.modalSelectedTime = null;
     state.modalSelectedFormat = null;
-    if (buyBtn && state.modalDefaultBuyUrl) {
-      buyBtn.href = state.modalDefaultBuyUrl;
+    state.modalSelectedDate = null;
+    if (buyBtn) {
+      buyBtn.href = '#';
+      buyBtn.removeAttribute('target');
+      buyBtn.removeAttribute('rel');
+      buyBtn.classList.add('is-prompt');
+      buyBtn.setAttribute('aria-disabled', 'true');
     }
     if (buyBtnText) {
-      buyBtnText.textContent = 'Comprar entradas en Showcase Oficial';
+      buyBtnText.textContent = 'Seleccioná un horario para comprar';
     }
   }
   btn.blur();
@@ -1058,6 +1554,7 @@ function closeMovieModal() {
   state.activeModalMovieId = null;
   state.modalSelectedTime = null;
   state.modalSelectedFormat = null;
+  state.modalSelectedDate = null;
   state.modalDefaultBuyUrl = null;
 
   // Restore background page scroll
@@ -1083,11 +1580,17 @@ function closeMovieModal() {
  * Shares movie invitation via WhatsApp with date, showtimes separated by format, and synopsis
  */
 function shareMovieInvitation(movieId) {
-  if (!state.currentData || !state.currentData.movies) return;
-  const movie = state.currentData.movies.find(m => String(m.id) === String(movieId));
+  if (!state.currentData) return;
+  const allList = [
+    ...(state.currentData.movies || []),
+    ...(state.currentData.otherWeekMovies || []),
+    ...(state.currentData.allWeekMovies || [])
+  ];
+  const movie = allList.find(m => String(m.id) === String(movieId));
   if (!movie) return;
 
-  const invitationDate = formatInvitationDate(state.selectedDate);
+  const targetDateIso = state.modalSelectedDate || state.selectedDate;
+  const invitationDate = formatInvitationDate(targetDateIso);
 
   const lines = [
     `🎬 *¡Vamos a ver "${movie.title}" al cine!*`,
@@ -1101,8 +1604,12 @@ function shareMovieInvitation(movieId) {
   } else {
     // Group all available showtimes separated by format
     const formatBlocks = [];
-    if (movie.formats && movie.formats.length > 0) {
-      for (const fmt of movie.formats) {
+    const formatsToUse = (movie.formats && movie.formats.length > 0)
+      ? movie.formats
+      : (movie.weeklySchedule && movie.weeklySchedule[0] ? movie.weeklySchedule[0].formats : []);
+
+    if (formatsToUse && formatsToUse.length > 0) {
+      for (const fmt of formatsToUse) {
         const timesList = (fmt.times || [])
           .map(t => typeof t === 'string' ? t : t.time)
           .filter(Boolean);
@@ -1142,7 +1649,7 @@ window.shareMovieInvitation = shareMovieInvitation;
 /**
  * Updates stats banner with distinct messaging depending on state
  */
-function updateStats(moviesCount, functionsCount) {
+function updateStats(moviesCount, functionsCount, otherCount = 0) {
   const countEl = document.getElementById('resultsCount');
   if (!countEl) return;
 
@@ -1150,12 +1657,21 @@ function updateStats(moviesCount, functionsCount) {
   if (state.searchQuery.trim()) {
     const q = state.searchQuery.trim();
     if (moviesCount === 0) {
-      countEl.textContent = `No se encontraron películas para "${q}"`;
+      if (otherCount > 0) {
+        const otherWord = otherCount === 1 ? 'película programada' : 'películas programadas';
+        countEl.textContent = `${otherCount} ${otherWord} otros días de la semana para "${q}"`;
+      } else {
+        countEl.textContent = `No se encontraron películas para "${q}"`;
+      }
       return;
     }
     const movieWord = moviesCount === 1 ? 'película' : 'películas';
     const funcWord = functionsCount === 1 ? 'función' : 'funciones';
-    countEl.textContent = `${moviesCount} ${movieWord} para "${q}" • ${functionsCount} ${funcWord}`;
+    if (otherCount > 0) {
+      countEl.textContent = `${moviesCount} hoy + ${otherCount} en otros días para "${q}"`;
+    } else {
+      countEl.textContent = `${moviesCount} ${movieWord} para "${q}" • ${functionsCount} ${funcWord}`;
+    }
     return;
   }
 
@@ -1170,6 +1686,14 @@ function updateStats(moviesCount, functionsCount) {
     } else {
       countEl.textContent = 'Sin funciones programadas para esta fecha';
     }
+    return;
+  }
+
+  // All week billboard results
+  const isAllWeek = Boolean(state.currentData && (state.currentData.isAllWeek || state.selectedDate === 'all'));
+  if (isAllWeek) {
+    const movieWord = moviesCount === 1 ? 'película' : 'películas';
+    countEl.textContent = `${moviesCount} ${movieWord} en cartelera • Tocá una película para ver todos sus horarios y comprar`;
     return;
   }
 
@@ -1655,3 +2179,25 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchCartelera(false);
   startLiveTicker();
 });
+
+// Native Dev Live-Reload & Hot CSS Swap (Localhost only)
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  try {
+    const devEs = new EventSource('/api/dev-reload');
+    devEs.onmessage = (e) => {
+      try {
+        const payload = JSON.parse(e.data);
+        if (payload.type === 'reload') {
+          window.location.reload();
+        } else if (payload.type === 'css') {
+          const links = document.querySelectorAll('link[rel="stylesheet"]');
+          links.forEach(link => {
+            const url = new URL(link.href, window.location.href);
+            url.searchParams.set('t', Date.now());
+            link.href = url.toString();
+          });
+        }
+      } catch (err) {}
+    };
+  } catch (e) {}
+}

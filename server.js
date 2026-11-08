@@ -20,9 +20,53 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon'
 };
 
+// Development Server-Sent Events (SSE) clients for hot reload
+const devClients = new Set();
+let devWatchDebounce = null;
+
+try {
+  fs.watch(PUBLIC_DIR, { recursive: true }, (eventType, filename) => {
+    if (!filename) return;
+    const ext = path.extname(filename).toLowerCase();
+    if (!['.css', '.js', '.html'].includes(ext)) return;
+
+    clearTimeout(devWatchDebounce);
+    devWatchDebounce = setTimeout(() => {
+      const isCss = ext === '.css';
+      const payload = JSON.stringify({ type: isCss ? 'css' : 'reload', file: filename });
+      for (const client of devClients) {
+        try {
+          client.write(`data: ${payload}\n\n`);
+        } catch (e) {
+          devClients.delete(client);
+        }
+      }
+    }, 60);
+  });
+} catch (watchErr) {
+  console.warn('Dev watch notice:', watchErr.message);
+}
+
 const server = http.createServer(async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
+
+  // Development live-reload SSE endpoint
+  if (pathname === '/api/dev-reload') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+    res.write('data: {"type":"connected"}\n\n');
+    devClients.add(res);
+
+    req.on('close', () => {
+      devClients.delete(res);
+    });
+    return;
+  }
 
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');

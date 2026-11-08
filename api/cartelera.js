@@ -219,39 +219,55 @@ async function fetchFilmDataForCinema(filmId, targetDate, cinema) {
 
   if (!data) return null;
 
-  const dayData = data.days && data.days[targetDate];
-  if (!dayData) return null;
+  // Extract full weekly schedule for this cinema across all available dates
+  const weeklySchedule = [];
+  const sortedDates = Object.keys(data.days || {}).sort();
 
-  // Match cinema by ID, or fallback to name substring
-  const cinemaData = dayData.find(c => c.id === cinema.id) ||
-    dayData.find(c => c.name && c.name.toLowerCase().includes(cinema.shortName.toLowerCase()));
+  for (const dt of sortedDates) {
+    const dayCinemas = data.days[dt] || [];
+    const cinemaMatch = dayCinemas.find(c => c.id === cinema.id) ||
+      dayCinemas.find(c => c.name && c.name.toLowerCase().includes(cinema.shortName.toLowerCase()));
+    if (!cinemaMatch) continue;
 
-  if (!cinemaData) return null;
+    const dayFormats = [];
+    for (const f of cinemaMatch.formats || []) {
+      const rawPerfs = Array.isArray(f.performances) ? f.performances : [];
+      const performances = rawPerfs.map(p => ({
+        time: p.showTime,
+        perfId: p.performanceId,
+        buyUrl: `https://entradas.todoshowcase.com/showcase/pelicula.aspx?filmid=${filmId}&perf=${p.performanceId}&cinema=${cinema.id}&date=${dt}&show=${f.showId || ''}`
+      })).sort((a, b) => a.time.localeCompare(b.time));
 
-  const formats = [];
-  const allTimes = [];
+      const times = performances.map(p => p.time);
+      if (times.length > 0) {
+        dayFormats.push({
+          format: f.formatDescription,
+          showId: f.showId || '',
+          times: times,
+          performances: performances
+        });
+      }
+    }
 
-  for (const f of cinemaData.formats || []) {
-    const rawPerfs = Array.isArray(f.performances) ? f.performances : [];
-    const performances = rawPerfs.map(p => ({
-      time: p.showTime,
-      perfId: p.performanceId,
-      buyUrl: `https://entradas.todoshowcase.com/showcase/pelicula.aspx?filmid=${filmId}&perf=${p.performanceId}&cinema=${cinema.id}&date=${targetDate}&show=${f.showId || ''}`
-    })).sort((a, b) => a.time.localeCompare(b.time));
-
-    const times = performances.map(p => p.time);
-    if (times.length > 0) {
-      formats.push({
-        format: f.formatDescription,
-        showId: f.showId || '',
-        times: times,
-        performances: performances
+    if (dayFormats.length > 0) {
+      weeklySchedule.push({
+        date: dt,
+        formats: dayFormats
       });
-      allTimes.push(...times);
     }
   }
 
-  if (formats.length === 0) return null;
+  // If the movie has no scheduled showtimes in this cinema at all this week
+  if (weeklySchedule.length === 0) return null;
+
+  // Formats specifically for requested targetDate
+  const targetDayEntry = weeklySchedule.find(s => s.date === targetDate);
+  const isScheduledToday = Boolean(targetDayEntry);
+  const formats = targetDayEntry ? targetDayEntry.formats : [];
+  const allTimes = [];
+  for (const f of formats) {
+    allTimes.push(...f.times);
+  }
 
   const uniqueSortedTimes = Array.from(new Set(allTimes)).sort();
   const details = await fetchFilmDetails(filmId);
@@ -261,10 +277,13 @@ async function fetchFilmDataForCinema(filmId, targetDate, cinema) {
     title: data.name,
     poster: `https://static.voyalcine.net/Uploads/i${filmId}.jpg`,
     buyUrl: `https://entradas.todoshowcase.com/showcase/pelicula.aspx?filmid=${filmId}`,
+    isScheduledToday: isScheduledToday,
     formats: formats,
     times: uniqueSortedTimes,
-    earliestTime: uniqueSortedTimes[0],
-    latestTime: uniqueSortedTimes[uniqueSortedTimes.length - 1],
+    earliestTime: uniqueSortedTimes[0] || null,
+    latestTime: uniqueSortedTimes[uniqueSortedTimes.length - 1] || null,
+    availableDates: weeklySchedule.map(s => s.date),
+    weeklySchedule: weeklySchedule,
     duration: details.duration,
     genre: details.genre,
     rating: details.rating,
@@ -278,10 +297,11 @@ async function fetchFilmDataForCinema(filmId, targetDate, cinema) {
 export async function getCartelera(requestedDate, requestedCinema = 14) {
   const cinemaInfo = resolveCinema(requestedCinema);
   const todayAr = getArgentinaDateStr();
-  const targetDate = requestedDate || todayAr;
-  const isToday = targetDate === todayAr;
+  const isAllWeek = requestedDate === 'all';
+  const targetDate = isAllWeek ? todayAr : (requestedDate || todayAr);
+  const isToday = !isAllWeek && targetDate === todayAr;
   const now = Date.now();
-  const cacheKey = `${cinemaInfo.id}_${targetDate}`;
+  const cacheKey = `${cinemaInfo.id}_${isAllWeek ? 'all' : targetDate}`;
 
   const cached = cache.get(cacheKey);
   if (cached && now - cached.timestamp < CACHE_TTL_MS) {
@@ -292,10 +312,28 @@ export async function getCartelera(requestedDate, requestedCinema = 14) {
   const promises = filmIds.map(id => fetchFilmDataForCinema(id, targetDate, cinemaInfo));
   const settled = await Promise.allSettled(promises);
 
-  const movies = settled
+  const allMovies = settled
     .filter(r => r.status === 'fulfilled' && r.value !== null)
-    .map(r => r.value)
-    .sort((a, b) => a.earliestTime.localeCompare(b.earliestTime));
+    .map(r => r.value);
+
+  // Extract all distinct dates across movies that actually have published showtimes in Showcase
+  const allPublishedDates = Array.from(
+    new Set(allMovies.flatMap(m => m.availableDates || []))
+  ).sort();
+
+  // Movies for the requested date/view
+  const moviesForDate = isAllWeek
+    ? allMovies.sort((a, b) => a.title.localeCompare(b.title, 'es', { sensitivity: 'base' }))
+    : allMovies
+        .filter(m => m.isScheduledToday)
+        .sort((a, b) => (a.earliestTime || '').localeCompare(b.earliestTime || ''));
+
+  // Movies active in the cinema this week but scheduled for other days
+  const otherWeekMovies = isAllWeek
+    ? []
+    : allMovies
+        .filter(m => !m.isScheduledToday)
+        .sort((a, b) => a.title.localeCompare(b.title, 'es', { sensitivity: 'base' }));
 
   const currentTimeAr = getArgentinaTimeStr();
 
@@ -315,11 +353,15 @@ export async function getCartelera(requestedDate, requestedCinema = 14) {
       location: c.location
     })),
     todayDate: todayAr,
-    targetDate: targetDate,
+    targetDate: isAllWeek ? 'all' : targetDate,
     isToday: isToday,
+    isAllWeek: isAllWeek,
+    publishedDates: allPublishedDates,
     currentTime: currentTimeAr,
-    totalMovies: movies.length,
-    movies: movies,
+    totalMovies: moviesForDate.length,
+    movies: moviesForDate,
+    otherWeekMovies: otherWeekMovies,
+    allWeekMovies: allMovies,
     cachedAt: new Date().toISOString()
   };
 

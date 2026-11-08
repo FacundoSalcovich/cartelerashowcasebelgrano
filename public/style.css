@@ -1440,18 +1440,33 @@ dialog.modal-dialog[open] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
   gap: 8px;
-  height: 40px;
-  padding: 0 18px;
+  min-height: 44px;
+  padding: 10px 16px;
   background-color: var(--accent-white);
   border: 1px solid var(--accent-white);
   border-radius: var(--radius-sm);
   color: var(--text-inverse);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
+  line-height: 1.3;
   cursor: pointer;
   transition: all 0.15s ease;
   width: 100%;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.btn-primary svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+#modalBuyBtnText {
+  display: inline-block;
+  text-align: center;
 }
 
 .btn-primary:hover {
@@ -1591,6 +1606,22 @@ a[aria-disabled="true"] {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
+.skeleton-catalog-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skeleton-poster-catalog {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  animation: pulse 1.5s ease-in-out infinite;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 0.9; }
@@ -1646,4 +1677,387 @@ a[aria-disabled="true"] {
   outline-offset: 2px;
   border-radius: var(--radius-xs);
   color: var(--text-main);
+}
+
+/* ==========================================================================
+   Weekly Schedule Tabs & Full Week Modal View
+   ========================================================================== */
+
+.modal-schedule-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.modal-schedule-tabs {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.modal-tab-btn {
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.modal-tab-btn:hover {
+  color: var(--text-main);
+}
+
+.modal-tab-btn.is-active {
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border-strong);
+  color: var(--text-main);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.modal-tab-content.is-hidden {
+  display: none !important;
+}
+
+.modal-notice-banner {
+  background-color: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #93c5fd;
+  line-height: 1.5;
+  margin: 6px 0;
+}
+
+.modal-week-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.modal-week-day-block {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-week-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modal-week-day-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.modal-week-day-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #60a5fa;
+  letter-spacing: 0.04em;
+}
+
+.btn-jump-day {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  transition: all 0.15s ease;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.btn-jump-day:hover {
+  color: var(--text-main);
+  background-color: var(--surface-subtle);
+}
+
+/* ==========================================================================
+   Global Search in Week: Section Divider & Date Chips
+   ========================================================================== */
+
+.week-search-divider {
+  grid-column: 1 / -1;
+  margin-top: 16px;
+  margin-bottom: 4px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.week-search-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.week-search-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #60a5fa;
+  background-color: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.week-search-count {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.week-search-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.week-movie-schedule-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.week-movie-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.date-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.date-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-main);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.date-chip-btn:hover {
+  background-color: var(--surface-subtle);
+  border-color: var(--border-focus);
+  color: var(--text-main);
+  transform: translateY(-1px);
+}
+
+.date-chip-btn:focus-visible {
+  outline: 2px solid var(--accent-white);
+  outline-offset: 1px;
+}
+
+.date-chip-btn:active {
+  transform: scale(0.96);
+}
+
+/* ==========================================================================
+   Catalog View ("Todas las películas"): Clean Poster Grid
+   ========================================================================== */
+
+.movie-grid.is-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+@media (min-width: 600px) {
+  .movie-grid.is-catalog-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+}
+
+@media (min-width: 900px) {
+  .movie-grid.is-catalog-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .movie-grid.is-catalog-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 22px;
+  }
+}
+
+.movie-card-catalog {
+  display: flex;
+  flex-direction: column;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  transition: transform 0.16s ease;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.movie-card-catalog:hover {
+  transform: translateY(-4px);
+}
+
+.movie-card-catalog:focus-visible {
+  outline: 2px solid var(--accent-white);
+  outline-offset: 4px;
+}
+
+.movie-card-catalog:active {
+  transform: scale(0.97);
+}
+
+.catalog-poster-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background-color: var(--surface-raised);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--border);
+}
+
+.catalog-poster-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.poster-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.poster-badge.is-cartelera {
+  background-color: rgba(16, 185, 129, 0.9);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.poster-badge.is-anticipada {
+  background-color: rgba(245, 158, 11, 0.92);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.catalog-info-wrapper {
+  margin-top: 8px;
+  padding: 0 2px;
+}
+
+.catalog-movie-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.35;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   Modal Guided Buy State & Schedule Pulse Hint
+   ========================================================================== */
+
+.btn-primary.is-prompt {
+  background-color: var(--surface-raised);
+  border: 1px dashed var(--border-strong);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.btn-primary.is-prompt:hover {
+  background-color: var(--surface-subtle);
+  border-color: var(--text-secondary);
+  color: var(--text-secondary);
+  transform: none;
+}
+
+@keyframes schedulePulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+  50% { transform: scale(1.02); box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+.schedule-pulse-hint {
+  animation: schedulePulse 0.5s ease;
 }
