@@ -1,6 +1,12 @@
 {
   "outputDirectory": "public",
   "cleanUrls": true,
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
   "rewrites": [
     {
       "source": "/:cinema(belgrano|norcenter|imax|imax-norcenter|haedo|quilmes|cordoba|villa-allende|rosario)",

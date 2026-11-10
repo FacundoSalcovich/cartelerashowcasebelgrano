@@ -2,8 +2,28 @@
 const cache = new Map();
 const filmTreeCache = new Map();
 const movieDetailsCache = new Map();
+const masterCinemaMovies = new Map(); // cinemaId -> Map<filmId, movieObject>
 const CACHE_TTL_MS = 5 * 60 * 1000;      // 5 minutes for full billboard
 const TREE_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes for film tree
+
+// Bounded concurrency mapper to prevent socket exhaustion and rate limiting
+async function mapConcurrent(items, fn, limit = 8) {
+  const results = new Array(items.length);
+  let index = 0;
+  async function worker() {
+    while (index < items.length) {
+      const i = index++;
+      try {
+        results[i] = await fn(items[i]);
+      } catch (err) {
+        results[i] = null;
+      }
+    }
+  }
+  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
 
 // Showcase complexes in Argentina (Official Voyalcine / Showcase IDs)
 export const CINEMAS = [
@@ -113,7 +133,7 @@ async function getActiveFilmIds(cinemaId = 14) {
   
   // Source 1: Voyalcine for the specific cinema
   try {
-    const res = await fetch(`https://api.voyalcine.net/films?cinemaId=${cinemaId}`, { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(`https://api.voyalcine.net/films?cinemaId=${cinemaId}`, { signal: AbortSignal.timeout(7000) });
     if (res.ok) {
       const data = await res.json();
       data.forEach(f => ids.add(f.id));
@@ -122,11 +142,22 @@ async function getActiveFilmIds(cinemaId = 14) {
     console.warn(`Voyalcine cinemaId=${cinemaId} error:`, e.message);
   }
 
+  // Source 1b: Voyalcine global films endpoint (backup in case cinema filter endpoint times out)
+  try {
+    const res = await fetch('https://api.voyalcine.net/films', { signal: AbortSignal.timeout(7000) });
+    if (res.ok) {
+      const data = await res.json();
+      data.forEach(f => ids.add(f.id));
+    }
+  } catch (e) {
+    console.warn('Voyalcine global films error:', e.message);
+  }
+
   // Source 2: Showcase official homepage
   try {
     const res = await fetch('https://entradas.todoshowcase.com/showcase/', {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(7000)
     });
     if (res.ok) {
       const html = await res.text();
@@ -137,8 +168,13 @@ async function getActiveFilmIds(cinemaId = 14) {
     console.warn('Showcase homepage scraper error:', err.message);
   }
   
-  // Source 3: Safe fallback of known film IDs
-  const fallback = [6291, 6277, 6278, 6275, 6276, 6252, 6255, 6250, 6251, 6236, 6234, 6220, 6203, 6209, 6191, 6194, 6177, 6154, 6156, 6101, 6102, 6082, 6083, 6060, 5984, 5927, 5875];
+  // Source 3: Safe fallback of known film IDs (including latest films)
+  const fallback = [
+    6302, 6300, 6299, 6298, 6297, 6296, 6295, 6291, 6278, 6277,
+    6276, 6275, 6255, 6252, 6251, 6250, 6236, 6234, 6220, 6209,
+    6203, 6194, 6191, 6177, 6156, 6154, 6137, 6102, 6101, 6083,
+    6082, 6079, 6060, 5984, 5927, 5875
+  ];
   fallback.forEach(id => ids.add(id));
 
   return Array.from(ids);
@@ -217,7 +253,26 @@ async function fetchFilmDataForCinema(filmId, targetDate, cinema) {
     }
   }
 
-  if (!data) return null;
+  if (!data) {
+    const cinemaMaster = masterCinemaMovies.get(cinema.id);
+    if (cinemaMaster && cinemaMaster.has(filmId)) {
+      const cachedMovie = cinemaMaster.get(filmId);
+      const targetDayEntry = (cachedMovie.weeklySchedule || []).find(s => s.date === targetDate);
+      const isScheduledToday = Boolean(targetDayEntry);
+      const formats = targetDayEntry ? targetDayEntry.formats : [];
+      const allTimes = formats.flatMap(f => f.times);
+      const uniqueSortedTimes = Array.from(new Set(allTimes)).sort();
+      return {
+        ...cachedMovie,
+        isScheduledToday,
+        formats,
+        times: uniqueSortedTimes,
+        earliestTime: uniqueSortedTimes[0] || null,
+        latestTime: uniqueSortedTimes[uniqueSortedTimes.length - 1] || null
+      };
+    }
+    return null;
+  }
 
   // Extract full weekly schedule for this cinema across all available dates
   const weeklySchedule = [];
@@ -258,7 +313,11 @@ async function fetchFilmDataForCinema(filmId, targetDate, cinema) {
   }
 
   // If the movie has no scheduled showtimes in this cinema at all this week
-  if (weeklySchedule.length === 0) return null;
+  if (weeklySchedule.length === 0) {
+    const cinemaMaster = masterCinemaMovies.get(cinema.id);
+    if (cinemaMaster) cinemaMaster.delete(filmId);
+    return null;
+  }
 
   // Formats specifically for requested targetDate
   const targetDayEntry = weeklySchedule.find(s => s.date === targetDate);
@@ -272,7 +331,7 @@ async function fetchFilmDataForCinema(filmId, targetDate, cinema) {
   const uniqueSortedTimes = Array.from(new Set(allTimes)).sort();
   const details = await fetchFilmDetails(filmId);
 
-  return {
+  const movieObj = {
     id: filmId,
     title: data.name,
     poster: `https://static.voyalcine.net/Uploads/i${filmId}.jpg`,
@@ -292,6 +351,13 @@ async function fetchFilmDataForCinema(filmId, targetDate, cinema) {
     synopsis: details.synopsis,
     trailerYoutubeId: details.trailerYoutubeId
   };
+
+  if (!masterCinemaMovies.has(cinema.id)) {
+    masterCinemaMovies.set(cinema.id, new Map());
+  }
+  masterCinemaMovies.get(cinema.id).set(filmId, movieObj);
+
+  return movieObj;
 }
 
 export async function getCartelera(requestedDate, requestedCinema = 14) {
@@ -309,12 +375,35 @@ export async function getCartelera(requestedDate, requestedCinema = 14) {
   }
 
   const filmIds = await getActiveFilmIds(cinemaInfo.id);
-  const promises = filmIds.map(id => fetchFilmDataForCinema(id, targetDate, cinemaInfo));
-  const settled = await Promise.allSettled(promises);
+  const results = await mapConcurrent(filmIds, id => fetchFilmDataForCinema(id, targetDate, cinemaInfo), 8);
+  const allMovies = results.filter(r => r !== null);
 
-  const allMovies = settled
-    .filter(r => r.status === 'fulfilled' && r.value !== null)
-    .map(r => r.value);
+  // Anti-degradation guard: ensure no previously valid movie was lost due to temporary network glitches
+  const cinemaMaster = masterCinemaMovies.get(cinemaInfo.id);
+  if (cinemaMaster) {
+    const currentIds = new Set(allMovies.map(m => m.id));
+    for (const [filmId, prevMovie] of cinemaMaster.entries()) {
+      if (!currentIds.has(filmId)) {
+        const hasUpcomingDates = (prevMovie.availableDates || []).some(d => d >= todayAr);
+        if (hasUpcomingDates) {
+          const targetDayEntry = (prevMovie.weeklySchedule || []).find(s => s.date === targetDate);
+          const isScheduledToday = Boolean(targetDayEntry);
+          const formats = targetDayEntry ? targetDayEntry.formats : [];
+          const allTimes = formats.flatMap(f => f.times);
+          const uniqueSortedTimes = Array.from(new Set(allTimes)).sort();
+
+          allMovies.push({
+            ...prevMovie,
+            isScheduledToday,
+            formats,
+            times: uniqueSortedTimes,
+            earliestTime: uniqueSortedTimes[0] || null,
+            latestTime: uniqueSortedTimes[uniqueSortedTimes.length - 1] || null
+          });
+        }
+      }
+    }
+  }
 
   // Extract all distinct dates across movies that actually have published showtimes in Showcase
   const allPublishedDates = Array.from(
@@ -379,7 +468,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=86400');
+  res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=600');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
