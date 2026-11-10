@@ -74,6 +74,27 @@ function updatePageMetadata(cinema) {
   } catch (e) {}
 }
 
+/**
+ * Helper to determine if a movie belongs to the current cinema week (already released / in billboard)
+ * or if it's a true advance ticket sale (premieres in a future cinema week from next Thursday onwards).
+ * In Argentina, cinema weeks run from Thursday to Wednesday.
+ */
+function isMovieInCurrentCinemaWeek(movie, todayDateStr) {
+  if (!movie) return false;
+  if (movie.isScheduledToday) return true;
+  const dates = Array.isArray(movie.availableDates) ? movie.availableDates : [];
+  if (!dates.length) return false;
+
+  const today = todayDateStr || (state.currentData ? state.currentData.todayDate : '') || new Date().toISOString().slice(0, 10);
+  const [y, m, d] = today.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  const day = dt.getUTCDay(); // 0 = Sun, 1 = Mon, 2 = Tue, 3 = Wed, 4 = Thu, 5 = Fri, 6 = Sat
+  const daysUntilWed = (3 - day + 7) % 7;
+  const currentWedStr = new Date(dt.getTime() + daysUntilWed * 86400000).toISOString().slice(0, 10);
+
+  return dates.some(dStr => dStr <= currentWedStr);
+}
+
 // Application State
 const state = {
   selectedDate: null,
@@ -960,7 +981,7 @@ function renderBillboard() {
   if (isAllWeek) {
     // Pure Poster Catalog View: only poster + overlay badge + title
     processedMovies.forEach((movie, idx) => {
-      const isShowingToday = Boolean(movie.isScheduledToday);
+      const isInCartelera = isMovieInCurrentCinemaWeek(movie, state.currentData && state.currentData.todayDate);
       const imgPriorityAttr = idx < 4 ? 'fetchpriority="high"' : 'loading="lazy"';
       const card = document.createElement('article');
       card.className = 'movie-card-catalog';
@@ -978,8 +999,8 @@ function renderBillboard() {
                ${imgPriorityAttr}
                decoding="async"
                onerror="this.onerror=null; this.src='/icon.svg';">
-          <span class="poster-badge ${isShowingToday ? 'is-cartelera' : 'is-anticipada'}">
-            ${isShowingToday ? 'En cartelera' : 'Anticipada'}
+          <span class="poster-badge ${isInCartelera ? 'is-cartelera' : 'is-anticipada'}">
+            ${isInCartelera ? 'En cartelera' : 'Anticipada'}
           </span>
         </div>
         <div class="catalog-info-wrapper">
@@ -2035,8 +2056,9 @@ function updateStats(moviesCount, functionsCount, otherCount = 0, processedMovie
   if (isAllWeek) {
     const movieWord = moviesCount === 1 ? 'película' : 'películas';
     const list = Array.isArray(processedMovies) ? processedMovies : [];
-    const carteleraCount = list.filter(m => m.isScheduledToday).length;
-    const anticipadasCount = list.filter(m => !m.isScheduledToday).length;
+    const todayStr = state.currentData ? state.currentData.todayDate : '';
+    const carteleraCount = list.filter(m => isMovieInCurrentCinemaWeek(m, todayStr)).length;
+    const anticipadasCount = list.filter(m => !isMovieInCurrentCinemaWeek(m, todayStr)).length;
 
     let countDetail = '';
     if (carteleraCount > 0 && anticipadasCount > 0) {
