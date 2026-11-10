@@ -379,13 +379,20 @@ function renderDateTabs(publishedDates) {
     });
 
     btn.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      const tabs = Array.from(container.querySelectorAll('.date-tab'));
+      const curIdx = tabs.indexOf(btn);
+      let nextIdx = -1;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        nextIdx = (curIdx + 1) % tabs.length;
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        nextIdx = (curIdx - 1 + tabs.length) % tabs.length;
+      } else if (e.key === 'Home') {
+        nextIdx = 0;
+      } else if (e.key === 'End') {
+        nextIdx = tabs.length - 1;
+      }
+      if (nextIdx !== -1) {
         e.preventDefault();
-        const tabs = Array.from(container.querySelectorAll('.date-tab'));
-        const curIdx = tabs.indexOf(btn);
-        let nextIdx = e.key === 'ArrowRight' ? curIdx + 1 : curIdx - 1;
-        if (nextIdx >= tabs.length) nextIdx = 0;
-        if (nextIdx < 0) nextIdx = tabs.length - 1;
         tabs[nextIdx].focus();
         tabs[nextIdx].click();
       }
@@ -425,8 +432,10 @@ function selectDate(dateIso, clickedBtn) {
   if (modeDateBtn && modeAllBtn) {
     modeDateBtn.classList.toggle('is-active', !isAll);
     modeDateBtn.setAttribute('aria-selected', !isAll ? 'true' : 'false');
+    modeDateBtn.setAttribute('tabindex', !isAll ? '0' : '-1');
     modeAllBtn.classList.toggle('is-active', isAll);
     modeAllBtn.setAttribute('aria-selected', isAll ? 'true' : 'false');
+    modeAllBtn.setAttribute('tabindex', isAll ? '0' : '-1');
   }
 
   if (datesNavWrapper) {
@@ -956,6 +965,9 @@ function renderBillboard() {
       const card = document.createElement('article');
       card.className = 'movie-card-catalog';
       card.dataset.movieId = movie.id;
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('aria-label', `${movie.title} - Ver detalles y horarios`);
       card.innerHTML = `
         <div class="catalog-poster-wrapper">
           <img src="${movie.poster}" 
@@ -964,6 +976,7 @@ function renderBillboard() {
                height="386" 
                style="aspect-ratio: 270 / 386;"
                ${imgPriorityAttr}
+               decoding="async"
                onerror="this.onerror=null; this.src='/icon.svg';">
           <span class="poster-badge ${isShowingToday ? 'is-cartelera' : 'is-anticipada'}">
             ${isShowingToday ? 'En cartelera' : 'Anticipada'}
@@ -982,6 +995,58 @@ function renderBillboard() {
           return;
         }
         openMovieModal(movie);
+      });
+
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openMovieModal(movie);
+          return;
+        }
+
+        const allCards = Array.from(container.querySelectorAll('.movie-card-catalog'));
+        const curIdx = allCards.indexOf(card);
+        if (curIdx === -1) return;
+
+        let nextIdx = -1;
+        if (e.key === 'ArrowRight') {
+          nextIdx = (curIdx + 1) % allCards.length;
+        } else if (e.key === 'ArrowLeft') {
+          nextIdx = (curIdx - 1 + allCards.length) % allCards.length;
+        } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          const curRect = card.getBoundingClientRect();
+          const isDown = e.key === 'ArrowDown';
+          let bestCard = null;
+          let bestDist = Infinity;
+
+          allCards.forEach(other => {
+            if (other === card) return;
+            const r = other.getBoundingClientRect();
+            const inDirection = isDown ? (r.top >= curRect.bottom - 15) : (r.bottom <= curRect.top + 15);
+            if (inDirection) {
+              const dx = (r.left + r.width / 2) - (curRect.left + curRect.width / 2);
+              const dy = isDown ? (r.top - curRect.bottom) : (curRect.top - r.bottom);
+              const dist = dy * 2 + Math.abs(dx);
+              if (dist < bestDist) {
+                bestDist = dist;
+                bestCard = other;
+              }
+            }
+          });
+
+          if (bestCard) {
+            e.preventDefault();
+            bestCard.focus();
+            bestCard.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            return;
+          }
+        }
+
+        if (nextIdx !== -1) {
+          e.preventDefault();
+          allCards[nextIdx].focus();
+          allCards[nextIdx].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }
       });
 
       container.appendChild(card);
@@ -1067,6 +1132,7 @@ function renderBillboard() {
              height="386"
              style="aspect-ratio: 270 / 386;"
              ${imgPriorityAttr}
+             decoding="async"
              onerror="this.onerror=null; this.src='/icon.svg';">
       </div>
 
@@ -1158,6 +1224,7 @@ function renderOtherWeekMovieCard(movie) {
            height="386"
            style="aspect-ratio: 270 / 386;"
            loading="lazy"
+           decoding="async"
            onerror="this.onerror=null; this.src='/icon.svg';">
     </div>
 
@@ -1342,10 +1409,13 @@ function syncOpenModalShowtimes(processedMovies) {
   }
 }
 
+let lastFocusedOpener = null;
+
 /**
  * Movie Detail Modal / Sheet (Holds duration, rating, director, synopsis, trailer, and showtimes)
  */
 function openMovieModal(movie) {
+  lastFocusedOpener = document.activeElement;
   const modal = document.getElementById('movieModal');
   const modalBody = document.getElementById('modalBody');
   if (!modal || !modalBody) return;
@@ -1834,6 +1904,14 @@ function closeMovieModal() {
     modalContent.style.transform = '';
     modalContent.style.transition = '';
   }
+
+  // Restore keyboard focus to element that triggered modal opening
+  if (lastFocusedOpener && typeof lastFocusedOpener.focus === 'function') {
+    try {
+      lastFocusedOpener.focus();
+    } catch (e) {}
+    lastFocusedOpener = null;
+  }
 }
 
 /**
@@ -2011,6 +2089,9 @@ function renderCinemaDropdown() {
     return `
       <a href="/${c.slug}" 
          class="cinema-menu-item ${isSelected ? 'is-selected' : ''}" 
+         role="option"
+         aria-selected="${isSelected ? 'true' : 'false'}"
+         tabindex="-1"
          data-cinema-id="${c.id}">
         <div class="cinema-item-info">
           <span class="cinema-item-name">${escapeHtml(c.name)}</span>
@@ -2103,7 +2184,28 @@ function hideDropdownBackdrop() {
   }
 }
 
-function closeAllDropdowns() {
+function openDropdown(wrapper, btn, focusTarget = 'selected') {
+  closeAllDropdowns();
+  wrapper.classList.add('is-open');
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+  showDropdownBackdrop();
+
+  const menu = wrapper.querySelector('.filter-menu, .cinema-menu');
+  if (!menu) return;
+  const items = Array.from(menu.querySelectorAll('.filter-menu-item, .cinema-menu-item'));
+  if (!items.length) return;
+
+  let target = items[0];
+  if (focusTarget === 'last') {
+    target = items[items.length - 1];
+  } else if (focusTarget === 'selected') {
+    const sel = items.find(it => it.classList.contains('is-selected'));
+    if (sel) target = sel;
+  }
+  target.focus();
+}
+
+function closeAllDropdowns(returnFocusToBtn = null) {
   const hasOpen = document.querySelector('.filter-dropdown-wrapper.is-open, .cinema-selector-wrapper.is-open');
   if (hasOpen) {
     lastDropdownCloseTime = Date.now();
@@ -2114,6 +2216,9 @@ function closeAllDropdowns() {
     if (btn) btn.setAttribute('aria-expanded', 'false');
   });
   hideDropdownBackdrop();
+  if (returnFocusToBtn && typeof returnFocusToBtn.focus === 'function') {
+    returnFocusToBtn.focus();
+  }
 }
 
 function updateDropdownUI() {
@@ -2171,12 +2276,13 @@ function updateDropdownUI() {
     }
   }
 
-  // 4. Update checkmarks inside menus
+  // 4. Update checkmarks and aria-selected inside menus
   document.querySelectorAll('.filter-menu-item').forEach(item => {
     const filterKey = item.dataset.filter;
     const filterVal = item.dataset.val;
     const isSelected = state.filters[filterKey] === filterVal;
     item.classList.toggle('is-selected', isSelected);
+    item.setAttribute('aria-selected', isSelected ? 'true' : 'false');
     const checkEl = item.querySelector('.filter-menu-check');
     if (checkEl) {
       checkEl.textContent = isSelected ? '✓' : '';
@@ -2251,19 +2357,104 @@ function setupEventListeners() {
     });
   }
 
-  // Filter Dropdown Pill Buttons (toggle open/close)
-  document.querySelectorAll('.filter-pill-btn').forEach(btn => {
+  // Unified Click + Keyboard Arrow/Home/End/Escape/Tab Navigation for all Dropdowns
+  const wireDropdown = (btn, wrapper, menu) => {
+    if (!btn || !wrapper || !menu) return;
+
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const wrapper = btn.closest('.filter-dropdown-wrapper');
       const wasOpen = wrapper.classList.contains('is-open');
-      closeAllDropdowns();
-      if (!wasOpen) {
-        wrapper.classList.add('is-open');
-        btn.setAttribute('aria-expanded', 'true');
-        showDropdownBackdrop();
+      if (wasOpen) {
+        closeAllDropdowns(btn);
+      } else {
+        openDropdown(wrapper, btn, 'selected');
       }
     });
+
+    btn.addEventListener('keydown', (e) => {
+      const isOpen = wrapper.classList.contains('is-open');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!isOpen) {
+          openDropdown(wrapper, btn, 'selected');
+        } else {
+          const menuItems = Array.from(menu.querySelectorAll('.filter-menu-item, .cinema-menu-item'));
+          const selected = menuItems.find(it => it.classList.contains('is-selected')) || menuItems[0];
+          if (selected) selected.focus();
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!isOpen) {
+          openDropdown(wrapper, btn, 'last');
+        } else {
+          const menuItems = Array.from(menu.querySelectorAll('.filter-menu-item, .cinema-menu-item'));
+          if (menuItems.length) menuItems[menuItems.length - 1].focus();
+        }
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (!isOpen) {
+          openDropdown(wrapper, btn, 'selected');
+        } else {
+          closeAllDropdowns(btn);
+        }
+      } else if (e.key === 'Escape' && isOpen) {
+        e.preventDefault();
+        closeAllDropdowns(btn);
+      }
+    });
+
+    menu.addEventListener('keydown', (e) => {
+      const items = Array.from(menu.querySelectorAll('.filter-menu-item, .cinema-menu-item'));
+      if (!items.length) return;
+      const curIdx = items.indexOf(document.activeElement);
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const nextIdx = (curIdx + 1) % items.length;
+        items[nextIdx].focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prevIdx = (curIdx - 1 + items.length) % items.length;
+        items[prevIdx].focus();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        items[0].focus();
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        items[items.length - 1].focus();
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (curIdx >= 0 && items[curIdx]) {
+          items[curIdx].click();
+          btn.focus();
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeAllDropdowns(btn);
+      } else if (e.key === 'Tab') {
+        closeAllDropdowns();
+      }
+    });
+  };
+
+  // Wire Location (Cinema) dropdown
+  wireDropdown(
+    document.getElementById('cinemaSelectorBtn'),
+    document.getElementById('dropdownCinemaWrapper'),
+    document.getElementById('menuCinema')
+  );
+
+  // Wire Filter dropdowns
+  [
+    { btnId: 'pillLangBtn', wrapId: 'dropdownLangWrapper', menuId: 'menuLang' },
+    { btnId: 'pillTimeBtn', wrapId: 'dropdownTimeWrapper', menuId: 'menuTime' },
+    { btnId: 'pillFormatBtn', wrapId: 'dropdownFormatWrapper', menuId: 'menuFormat' }
+  ].forEach(({ btnId, wrapId, menuId }) => {
+    wireDropdown(
+      document.getElementById(btnId),
+      document.getElementById(wrapId),
+      document.getElementById(menuId)
+    );
   });
 
   // Filter Menu Options Selection
@@ -2274,35 +2465,36 @@ function setupEventListeners() {
       const filterVal = item.dataset.val;
       if (filterKey && filterVal) {
         state.filters[filterKey] = filterVal;
-        closeAllDropdowns();
+        const btn = item.closest('.filter-dropdown-wrapper')?.querySelector('.filter-pill-btn');
+        closeAllDropdowns(btn);
         updateDropdownUI();
         renderBillboard();
       }
     });
   });
 
-  // Cinema Selector Dropdown button
-  const cinemaBtn = document.getElementById('cinemaSelectorBtn');
-  if (cinemaBtn) {
-    cinemaBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const wrapper = document.getElementById('dropdownCinemaWrapper');
-      if (!wrapper) return;
-      const wasOpen = wrapper.classList.contains('is-open');
-      closeAllDropdowns();
-      if (!wasOpen) {
-        wrapper.classList.add('is-open');
-        cinemaBtn.setAttribute('aria-expanded', 'true');
-        showDropdownBackdrop();
-      }
-    });
-  }
-
   // View Mode Segmented Control (Por fecha vs. Todas las películas)
   const modeDateBtn = document.getElementById('modeDateBtn');
   const modeAllBtn = document.getElementById('modeAllBtn');
 
+  const handleViewModeKeydown = (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (modeAllBtn) {
+        modeAllBtn.focus();
+        modeAllBtn.click();
+      }
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (modeDateBtn) {
+        modeDateBtn.focus();
+        modeDateBtn.click();
+      }
+    }
+  };
+
   if (modeDateBtn) {
+    modeDateBtn.addEventListener('keydown', handleViewModeKeydown);
     modeDateBtn.addEventListener('click', () => {
       if (state.selectedDate !== 'all') {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2317,6 +2509,7 @@ function setupEventListeners() {
   }
 
   if (modeAllBtn) {
+    modeAllBtn.addEventListener('keydown', handleViewModeKeydown);
     modeAllBtn.addEventListener('click', () => {
       if (state.selectedDate === 'all') {
         window.scrollTo({ top: 0, behavior: 'smooth' });

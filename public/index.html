@@ -45,9 +45,10 @@
   <link rel="dns-prefetch" href="https://static.voyalcine.net">
   <link rel="preconnect" href="https://api.voyalcine.net" crossorigin>
   <link rel="dns-prefetch" href="https://api.voyalcine.net">
+  <link rel="preload" href="/style.css?v=41" as="style">
 
   <!-- Clean, Zero-CDN Native Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=35">
+  <link rel="stylesheet" href="/style.css?v=41">
 
   <!-- Vercel Web Analytics -->
   <script>
@@ -84,6 +85,9 @@
 </head>
 <body>
 
+  <!-- Accessible Skip Link for Keyboard / Screen Reader Navigation -->
+  <a href="#movieGrid" class="skip-link">Saltar al contenido principal</a>
+
   <!-- Transparent overlay backdrop to shield clicks outside open dropdowns -->
   <div id="dropdownBackdrop" class="dropdown-backdrop" hidden aria-hidden="true"></div>
 
@@ -111,7 +115,13 @@
 
         <!-- Cinema Selector Dropdown (Belgrano is default) -->
         <div class="cinema-selector-wrapper" id="dropdownCinemaWrapper">
-          <button type="button" class="cinema-selector-btn" id="cinemaSelectorBtn" aria-expanded="false" aria-label="Seleccionar complejo Showcase">
+          <button type="button" 
+                  class="cinema-selector-btn" 
+                  id="cinemaSelectorBtn" 
+                  aria-expanded="false" 
+                  aria-haspopup="listbox" 
+                  aria-controls="menuCinema" 
+                  aria-label="Seleccionar complejo Showcase">
             <span class="cinema-pin-icon" aria-hidden="true">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
@@ -123,7 +133,7 @@
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </button>
-          <div class="cinema-menu" id="menuCinema">
+          <div class="cinema-menu" id="menuCinema" role="listbox" aria-label="Complejos Showcase">
             <!-- Populated dynamically via app.js -->
           </div>
         </div>
@@ -139,6 +149,7 @@
                   id="modeDateBtn" 
                   role="tab" 
                   aria-selected="true" 
+                  tabindex="0"
                   aria-controls="datesNavWrapper">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -152,7 +163,8 @@
                   class="view-mode-tab" 
                   id="modeAllBtn" 
                   role="tab" 
-                  aria-selected="false">
+                  aria-selected="false"
+                  tabindex="-1">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect width="20" height="18" x="2" y="3" rx="2.5" ry="2.5"></rect>
               <line x1="2" y1="9" x2="22" y2="9"></line>
@@ -203,26 +215,39 @@
           </button>
         </search>
 
-        <!-- Modern Filter Pills Row (Option 2: Airbnb / Flights dropdown pills) -->
+        <!-- Modern Filter Pills Row (Consistent with Location Dropdown) -->
         <div class="filter-pills-row">
           <!-- Dropdown 1: Idioma -->
           <div class="filter-dropdown-wrapper" id="dropdownLangWrapper">
-            <button type="button" class="filter-pill-btn" id="pillLangBtn" aria-expanded="false">
+            <button type="button" 
+                    class="filter-pill-btn" 
+                    id="pillLangBtn" 
+                    aria-expanded="false" 
+                    aria-haspopup="listbox" 
+                    aria-controls="menuLang" 
+                    aria-label="Filtrar por idioma">
+              <span class="filter-pill-icon" aria-hidden="true">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+              </span>
               <span class="filter-pill-label" id="pillLangLabel">Idioma</span>
               <svg class="dropdown-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
-            <div class="filter-menu" id="menuLang">
-              <button type="button" class="filter-menu-item is-selected" data-filter="language" data-val="all">
+            <div class="filter-menu" id="menuLang" role="listbox" aria-label="Opciones de idioma">
+              <button type="button" class="filter-menu-item is-selected" role="option" aria-selected="true" tabindex="-1" data-filter="language" data-val="all">
                 <span>Todos los idiomas</span>
                 <span class="filter-menu-check">✓</span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="language" data-val="sub">
+              <button type="button" class="filter-menu-item" role="option" aria-selected="false" tabindex="-1" data-filter="language" data-val="sub">
                 <span>Subtitulada</span>
                 <span class="filter-menu-check"></span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="language" data-val="dob">
+              <button type="button" class="filter-menu-item" role="option" aria-selected="false" tabindex="-1" data-filter="language" data-val="dob">
                 <span>Doblada (Español)</span>
                 <span class="filter-menu-check"></span>
               </button>
@@ -231,30 +256,42 @@
 
           <!-- Dropdown 2: Horario -->
           <div class="filter-dropdown-wrapper" id="dropdownTimeWrapper">
-            <button type="button" class="filter-pill-btn" id="pillTimeBtn" aria-expanded="false">
+            <button type="button" 
+                    class="filter-pill-btn" 
+                    id="pillTimeBtn" 
+                    aria-expanded="false" 
+                    aria-haspopup="listbox" 
+                    aria-controls="menuTime" 
+                    aria-label="Filtrar por horario">
+              <span class="filter-pill-icon" aria-hidden="true">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </span>
               <span class="filter-pill-label" id="pillTimeLabel">Horario</span>
               <svg class="dropdown-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
-            <div class="filter-menu" id="menuTime">
-              <button type="button" class="filter-menu-item is-selected" data-filter="timeBand" data-val="all">
+            <div class="filter-menu" id="menuTime" role="listbox" aria-label="Opciones de horario">
+              <button type="button" class="filter-menu-item is-selected" role="option" aria-selected="true" tabindex="-1" data-filter="timeBand" data-val="all">
                 <span>Cualquier hora</span>
                 <span class="filter-menu-check">✓</span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="15">
+              <button type="button" class="filter-menu-item" role="option" aria-selected="false" tabindex="-1" data-filter="timeBand" data-val="15">
                 <span>Desde 15:00 hs</span>
                 <span class="filter-menu-check"></span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="18">
+              <button type="button" class="filter-menu-item" role="option" aria-selected="false" tabindex="-1" data-filter="timeBand" data-val="18">
                 <span>Desde 18:00 hs</span>
                 <span class="filter-menu-check"></span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="20">
+              <button type="button" class="filter-menu-item" role="option" aria-selected="false" tabindex="-1" data-filter="timeBand" data-val="20">
                 <span>Desde 20:00 hs</span>
                 <span class="filter-menu-check"></span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="timeBand" data-val="22">
+              <button type="button" class="filter-menu-item" role="option" aria-selected="false" tabindex="-1" data-filter="timeBand" data-val="22">
                 <span>Desde 22:00 hs</span>
                 <span class="filter-menu-check"></span>
               </button>
@@ -263,22 +300,40 @@
 
           <!-- Dropdown 3: Formato -->
           <div class="filter-dropdown-wrapper" id="dropdownFormatWrapper">
-            <button type="button" class="filter-pill-btn" id="pillFormatBtn" aria-expanded="false">
+            <button type="button" 
+                    class="filter-pill-btn" 
+                    id="pillFormatBtn" 
+                    aria-expanded="false" 
+                    aria-haspopup="listbox" 
+                    aria-controls="menuFormat" 
+                    aria-label="Filtrar por formato">
+              <span class="filter-pill-icon" aria-hidden="true">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                  <line x1="7" y1="2" x2="7" y2="22"></line>
+                  <line x1="17" y1="2" x2="17" y2="22"></line>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                  <line x1="2" y1="7" x2="7" y2="7"></line>
+                  <line x1="2" y1="17" x2="7" y2="17"></line>
+                  <line x1="17" y1="17" x2="22" y2="17"></line>
+                  <line x1="17" y1="7" x2="22" y2="7"></line>
+                </svg>
+              </span>
               <span class="filter-pill-label" id="pillFormatLabel">Formato</span>
               <svg class="dropdown-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
-            <div class="filter-menu" id="menuFormat">
-              <button type="button" class="filter-menu-item is-selected" data-filter="format" data-val="all">
+            <div class="filter-menu" id="menuFormat" role="listbox" aria-label="Opciones de formato">
+              <button type="button" class="filter-menu-item is-selected" role="option" aria-selected="true" tabindex="-1" data-filter="format" data-val="all">
                 <span>2D y 3D</span>
                 <span class="filter-menu-check">✓</span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="format" data-val="2d">
+              <button type="button" class="filter-menu-item" role="option" aria-selected="false" tabindex="-1" data-filter="format" data-val="2d">
                 <span>Solo 2D</span>
                 <span class="filter-menu-check"></span>
               </button>
-              <button type="button" class="filter-menu-item" data-filter="format" data-val="3d">
+              <button type="button" class="filter-menu-item" role="option" aria-selected="false" tabindex="-1" data-filter="format" data-val="3d">
                 <span>Solo 3D</span>
                 <span class="filter-menu-check"></span>
               </button>
@@ -292,7 +347,7 @@
   <!-- Movie Billboard Grid -->
   <main class="billboard-main">
     <div class="container">
-      <div class="movie-grid" id="movieGrid" aria-live="polite">
+      <div class="movie-grid" id="movieGrid" tabindex="-1" aria-live="polite">
         <!-- Injected via app.js -->
       </div>
 
@@ -356,7 +411,7 @@
     </div>
   </footer>
 
-  <script src="/app.js?v=35" defer></script>
+  <script src="/app.js?v=41" defer></script>
 
   <!-- Vercel Web Analytics & Speed Insights (Production) -->
   <script>

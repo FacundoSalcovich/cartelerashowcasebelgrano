@@ -99,6 +99,29 @@ body {
   overflow-x: hidden;
 }
 
+/* Accessible Skip to Content Link (Visible on Keyboard Tab focus) */
+.skip-link {
+  position: absolute;
+  top: -120px;
+  left: 16px;
+  background-color: var(--accent-white);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 9999;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  transition: top 0.18s ease;
+}
+
+.skip-link:focus-visible {
+  top: 14px;
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -225,6 +248,7 @@ button, input, select {
   border: none;
   border-radius: var(--radius-sm);
   color: var(--text-main);
+  font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -243,11 +267,12 @@ button, input, select {
 
 .cinema-selector-btn:hover {
   background-color: var(--surface-subtle);
-  border-color: var(--accent-white);
+  border: none;
+  color: #ffffff;
 }
 
 .cinema-selector-btn:focus-visible {
-  outline: 2px solid var(--accent-white);
+  outline: 2px solid #00b3ff;
   outline-offset: 2px;
 }
 
@@ -255,18 +280,23 @@ button, input, select {
   transform: scale(0.98);
 }
 
-.cinema-pin-icon {
+.cinema-pin-icon,
+.filter-pill-icon {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-secondary);
   flex-shrink: 0;
   transition: color 0.15s ease;
 }
 
-.cinema-selector-btn:hover .cinema-pin-icon {
+.cinema-selector-btn:hover .cinema-pin-icon,
+.filter-pill-btn:hover .filter-pill-icon {
   color: var(--text-main);
 }
 
-.cinema-selector-wrapper.is-open .dropdown-chevron {
+.cinema-selector-wrapper.is-open .dropdown-chevron,
+.filter-dropdown-wrapper.is-open .dropdown-chevron {
   transform: rotate(180deg);
 }
 
@@ -291,7 +321,7 @@ button, input, select {
     font-size: 13.5px;
   }
   .cinema-selector-btn {
-    height: 30px;
+    height: 32px;
     padding: 0 8px;
     font-size: 11.5px;
     gap: 5px;
@@ -307,11 +337,11 @@ button, input, select {
   min-width: 250px;
   max-width: calc(100vw - 24px);
   background-color: var(--surface-raised);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-sm);
   padding: 4px;
   z-index: 60;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.7);
   display: none;
   flex-direction: column;
   gap: 2px;
@@ -338,7 +368,8 @@ button, input, select {
   text-align: left;
   text-decoration: none;
   font-family: inherit;
-  font-size: inherit;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.12s ease;
   gap: 10px;
@@ -346,19 +377,20 @@ button, input, select {
 
 .cinema-menu-item:hover {
   background-color: var(--surface-subtle);
-  color: var(--text-main);
+  color: #ffffff;
 }
 
 .cinema-menu-item:focus-visible {
-  outline: 2px solid var(--accent-white);
+  outline: 2px solid #00b3ff;
   outline-offset: -2px;
   background-color: var(--surface-subtle);
-  color: var(--text-main);
+  color: #ffffff;
 }
 
 .cinema-menu-item.is-selected {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: var(--accent-white);
+  background-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff !important;
+  font-weight: 600;
 }
 
 .cinema-item-info {
@@ -373,14 +405,24 @@ button, input, select {
   color: var(--text-main);
 }
 
+.cinema-menu-item.is-selected .cinema-item-name {
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
 .cinema-item-location {
   font-size: 10px;
   color: var(--text-tertiary);
 }
 
+.cinema-menu-item.is-selected .cinema-item-location {
+  color: #cbd5e1 !important;
+}
+
 .cinema-menu-check {
   font-size: 13px;
-  color: var(--accent-white);
+  font-weight: 700;
+  color: #00b3ff !important;
   min-width: 14px;
   text-align: right;
 }
@@ -638,7 +680,7 @@ button, input, select {
   display: flex;
 }
 
-/* Modern Filter Pills Row (Airbnb / Flights style) */
+/* Modern Filter Pills Row (Harmonized with Location Dropdown) */
 .filter-pills-row {
   display: flex;
   align-items: center;
@@ -654,31 +696,31 @@ button, input, select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 38px;
-  padding: 0 14px;
-  background-color: var(--surface);
+  gap: 7px;
+  height: 32px;
+  padding: 0 10px;
+  background-color: var(--surface-raised);
   border: none;
   border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  color: var(--text-main);
   font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   transition: all 0.15s ease;
   white-space: nowrap;
   user-select: none;
 }
 
 .filter-pill-btn:hover {
-  background-color: var(--surface-raised);
+  background-color: var(--surface-subtle);
   border: none;
-  color: var(--text-main);
+  color: #ffffff;
 }
 
 .filter-pill-btn:focus-visible {
-  outline: 2px solid var(--accent-white);
+  outline: 2px solid #00b3ff;
   outline-offset: 2px;
 }
 
@@ -687,18 +729,22 @@ button, input, select {
 }
 
 .filter-pill-btn.is-active {
-  background-color: var(--surface-raised);
-  border-color: var(--border-strong);
-  color: var(--text-main);
+  background-color: var(--surface-subtle);
+  border: none;
+  box-shadow: 0 0 0 1px #00b3ff, 0 2px 6px rgba(0, 0, 0, 0.3);
+  color: #ffffff;
   font-weight: 600;
+}
+
+.filter-pill-btn.is-active .filter-pill-icon,
+.filter-pill-btn.is-active .dropdown-chevron {
+  color: #00b3ff;
 }
 
 .filter-pill-label {
   display: inline-flex;
   align-items: center;
   line-height: 1;
-  position: relative;
-  top: -1.5px;
   padding: 0;
   margin: 0;
 }
@@ -708,7 +754,7 @@ button, input, select {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   position: relative;
   top: -0.5px;
   transition: transform 0.18s ease;
@@ -725,13 +771,13 @@ button, input, select {
 
 .filter-menu {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 0;
-  min-width: 180px;
-  background-color: #1a1d24;
-  border: none;
+  min-width: 190px;
+  background-color: var(--surface-raised);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-sm);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.7);
   padding: 4px;
   display: none;
   flex-direction: column;
@@ -759,13 +805,14 @@ button, input, select {
 
   .filter-pill-btn {
     width: 100%;
-    height: 40px;
-    padding: 0 6px;
+    height: 32px;
+    padding: 0 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 5px;
-    font-size: 13px;
+    font-size: 11.5px;
+    font-weight: 600;
   }
 
   .filter-pill-label {
@@ -774,8 +821,6 @@ button, input, select {
     white-space: nowrap;
     display: inline-block;
     line-height: normal;
-    position: static;
-    top: auto;
   }
 
   .dropdown-chevron {
@@ -799,13 +844,14 @@ button, input, select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 8px 12px;
+  padding: 8px 10px;
   border-radius: var(--radius-xs);
   background: none;
   border: none;
   color: var(--text-secondary);
+  font-family: inherit;
   font-size: 12px;
   font-weight: 500;
   text-align: left;
@@ -816,14 +862,14 @@ button, input, select {
 
 .filter-menu-item:hover {
   background-color: var(--surface-subtle);
-  color: var(--text-main);
+  color: #ffffff;
 }
 
 .filter-menu-item:focus-visible {
-  outline: 2px solid var(--accent-white);
+  outline: 2px solid #00b3ff;
   outline-offset: -2px;
   background-color: var(--surface-subtle);
-  color: var(--text-main);
+  color: #ffffff;
 }
 
 .filter-menu-item:active {
@@ -831,16 +877,26 @@ button, input, select {
 }
 
 .filter-menu-item.is-selected {
-  background-color: rgba(255, 255, 255, 0.07);
-  color: var(--accent-white);
+  background-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff !important;
   font-weight: 600;
 }
 
+.filter-menu-item.is-selected span,
+.filter-menu-item.is-selected * {
+  color: #ffffff !important;
+}
+
 .filter-menu-check {
-  font-size: 12px;
-  color: var(--accent-white);
+  font-size: 13px;
+  font-weight: 700;
+  color: #00b3ff !important;
   min-width: 14px;
   text-align: right;
+}
+
+.filter-menu-item.is-selected .filter-menu-check {
+  color: #00b3ff !important;
 }
 
 /* Results count banner (Bottom summary) */
@@ -896,6 +952,8 @@ button, input, select {
   cursor: pointer;
   height: 100%; /* Equal height cards */
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
 }
 
 .movie-card:hover {
@@ -2148,6 +2206,8 @@ a[aria-disabled="true"] {
   position: relative;
   -webkit-tap-highlight-color: transparent;
   outline: none;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 340px;
 }
 
 .movie-card-catalog:hover {

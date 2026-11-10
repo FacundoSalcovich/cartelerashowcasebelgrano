@@ -89,7 +89,10 @@ const server = http.createServer(async (req, res) => {
       const dateParam = parsedUrl.searchParams.get('date');
       const cinemaParam = parsedUrl.searchParams.get('cinema') || parsedUrl.searchParams.get('cinemaId') || '14';
       const data = await getCartelera(dateParam, cinemaParam);
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=86400'
+      });
       return res.end(JSON.stringify(data));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -116,7 +119,10 @@ const server = http.createServer(async (req, res) => {
           res.writeHead(404);
           return res.end('Not Found');
         }
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'public, max-age=0, must-revalidate'
+        });
         res.end(content);
       });
       return;
@@ -124,13 +130,21 @@ const server = http.createServer(async (req, res) => {
 
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    const cacheControl = ext === '.html'
+      ? 'public, max-age=0, must-revalidate'
+      : (process.env.NODE_ENV === 'production' && parsedUrl.searchParams.has('v')
+          ? 'public, max-age=31536000, immutable'
+          : 'no-cache, must-revalidate');
 
     fs.readFile(filePath, (readErr, content) => {
       if (readErr) {
         res.writeHead(500);
         return res.end('Internal Server Error');
       }
-      res.writeHead(200, { 'Content-Type': contentType });
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Cache-Control': cacheControl
+      });
       res.end(content);
     });
   });
