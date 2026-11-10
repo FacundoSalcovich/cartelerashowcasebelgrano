@@ -98,12 +98,24 @@ export const CINEMAS = [
     location: 'Rosario, Santa Fe',
     address: 'Junín 501, Rosario, Santa Fe (Alto Rosario Shopping)',
     mapsQuery: 'Showcase Cinemas Rosario Alto Rosario'
+  },
+  {
+    id: 'all',
+    slug: 'cualquiera',
+    name: 'Todos los complejos',
+    shortName: 'Cualquiera',
+    location: 'Todos los cines Showcase',
+    address: 'Complejos Showcase en todo el país',
+    mapsQuery: 'Showcase Cinemas Argentina'
   }
 ];
 
 export function resolveCinema(cinemaParam) {
   if (!cinemaParam) return CINEMAS[0]; // Default: Showcase Belgrano
   const paramStr = String(cinemaParam).toLowerCase().trim();
+  if (paramStr === 'all' || paramStr === 'cualquiera' || paramStr === 'todos') {
+    return CINEMAS.find(c => c.id === 'all');
+  }
   const byId = CINEMAS.find(c => String(c.id) === paramStr);
   if (byId) return byId;
   const bySlug = CINEMAS.find(c => c.slug === paramStr || c.shortName.toLowerCase() === paramStr);
@@ -271,27 +283,37 @@ async function fetchFilmDataForCinema(filmId, targetDate, cinema) {
 
   for (const dt of sortedDates) {
     const dayCinemas = data.days[dt] || [];
-    const cinemaMatch = dayCinemas.find(c => c.id === cinema.id) ||
-      dayCinemas.find(c => c.name && c.name.toLowerCase().includes(cinema.shortName.toLowerCase()));
-    if (!cinemaMatch) continue;
+    if (!dayCinemas.length) continue;
+
+    const matchedCinemas = (cinema.id === 'all')
+      ? dayCinemas
+      : dayCinemas.filter(c => c.id === cinema.id || (c.name && c.name.toLowerCase().includes(cinema.shortName.toLowerCase())));
+    if (!matchedCinemas.length) continue;
 
     const dayFormats = [];
-    for (const f of cinemaMatch.formats || []) {
-      const rawPerfs = Array.isArray(f.performances) ? f.performances : [];
-      const performances = rawPerfs.map(p => ({
-        time: p.showTime,
-        perfId: p.performanceId,
-        buyUrl: `https://entradas.todoshowcase.com/showcase/pelicula.aspx?filmid=${filmId}&perf=${p.performanceId}&cinema=${cinema.id}&date=${dt}&show=${f.showId || ''}`
-      })).sort((a, b) => a.time.localeCompare(b.time));
+    for (const cinemaMatch of matchedCinemas) {
+      const cinemaPrefix = cinema.id === 'all' ? `${cinemaMatch.name || 'Showcase'} - ` : '';
+      for (const f of cinemaMatch.formats || []) {
+        const rawPerfs = Array.isArray(f.performances) ? f.performances : [];
+        const performances = rawPerfs.map(p => ({
+          time: p.showTime,
+          perfId: p.performanceId,
+          cinemaId: cinemaMatch.id,
+          cinemaName: cinemaMatch.name,
+          buyUrl: `https://entradas.todoshowcase.com/showcase/pelicula.aspx?filmid=${filmId}&perf=${p.performanceId}&cinema=${cinemaMatch.id}&date=${dt}&show=${f.showId || ''}`
+        })).sort((a, b) => a.time.localeCompare(b.time));
 
-      const times = performances.map(p => p.time);
-      if (times.length > 0) {
-        dayFormats.push({
-          format: f.formatDescription,
-          showId: f.showId || '',
-          times: times,
-          performances: performances
-        });
+        const times = performances.map(p => p.time);
+        if (times.length > 0) {
+          dayFormats.push({
+            cinemaId: cinemaMatch.id,
+            cinemaName: cinemaMatch.name,
+            format: `${cinemaPrefix}${f.formatDescription}`,
+            showId: f.showId || '',
+            times: times,
+            performances: performances
+          });
+        }
       }
     }
 

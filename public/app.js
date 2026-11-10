@@ -12,14 +12,15 @@ const CINEMAS_FALLBACK = [
   { id: 15, slug: 'quilmes', name: 'Showcase Quilmes', shortName: 'Quilmes', location: 'Quilmes, GBA Sur', address: 'Humberto 1º 299, Quilmes (Quilmes Factory)' },
   { id: 12, slug: 'cordoba', name: 'Showcase Córdoba (Villa Cabrera)', shortName: 'Córdoba (Villa Cabrera)', location: 'Córdoba Capital', address: 'José Antonio de Goyechea 2851, Córdoba (Córdoba Shopping)' },
   { id: 17, slug: 'villa-allende', name: 'Showcase Villa Allende', shortName: 'Villa Allende (Córdoba)', location: 'Villa Allende, Córdoba', address: 'Av. Padre Luchesse 3000, Villa Allende (VAS Shopping)' },
-  { id: 16, slug: 'rosario', name: 'Showcase Rosario', shortName: 'Rosario', location: 'Rosario, Santa Fe', address: 'Junín 501, Rosario, Santa Fe (Alto Rosario Shopping)' }
+  { id: 16, slug: 'rosario', name: 'Showcase Rosario', shortName: 'Rosario', location: 'Rosario, Santa Fe', address: 'Junín 501, Rosario, Santa Fe (Alto Rosario Shopping)' },
+  { id: 'all', slug: 'cualquiera', name: 'Todos los complejos', shortName: 'Cualquiera', location: 'Todos los cines Showcase', address: 'Complejos Showcase en todo el país' }
 ];
 
 function getCinemaFromPathname() {
   try {
     const rawPath = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
     if (!rawPath) return null;
-    return CINEMAS_FALLBACK.find(c => c.slug === rawPath || (rawPath === 'imax-norcenter' && c.slug === 'imax')) || null;
+    return CINEMAS_FALLBACK.find(c => c.slug === rawPath || (rawPath === 'imax-norcenter' && c.slug === 'imax') || (rawPath === 'all' && c.slug === 'cualquiera')) || null;
   } catch {
     return null;
   }
@@ -75,15 +76,15 @@ function updatePageMetadata(cinema) {
 }
 
 /**
- * Helper to determine if a movie belongs to the current cinema week (already released / in billboard)
- * or if it's a true advance ticket sale (premieres in a future cinema week from next Thursday onwards).
- * In Argentina, cinema weeks run from Thursday to Wednesday.
+ * Classifies movies into three distinct official Showcase categories:
+ * 1. "En cartelera" (is-cartelera): playing in the current cinema week (Thu to Wed).
+ * 2. "Estreno" (is-estreno): debuts on the upcoming Thursday cycle (estreno de la semana).
+ * 3. "Anticipada" (is-anticipada): true advance ticket pre-sales for future weeks (2+ weeks out).
  */
-function isMovieInCurrentCinemaWeek(movie, todayDateStr) {
-  if (!movie) return false;
-  if (movie.isScheduledToday) return true;
+function getMovieBadgeInfo(movie, todayDateStr) {
+  if (!movie) return { type: 'cartelera', label: 'En cartelera', className: 'is-cartelera' };
   const dates = Array.isArray(movie.availableDates) ? movie.availableDates : [];
-  if (!dates.length) return false;
+  if (!dates.length) return { type: 'cartelera', label: 'En cartelera', className: 'is-cartelera' };
 
   const today = todayDateStr || (state.currentData ? state.currentData.todayDate : '') || new Date().toISOString().slice(0, 10);
   const [y, m, d] = today.split('-').map(Number);
@@ -92,7 +93,23 @@ function isMovieInCurrentCinemaWeek(movie, todayDateStr) {
   const daysUntilWed = (3 - day + 7) % 7;
   const currentWedStr = new Date(dt.getTime() + daysUntilWed * 86400000).toISOString().slice(0, 10);
 
-  return dates.some(dStr => dStr <= currentWedStr);
+  // If it has any screening on or before the current cinema week ends (Wednesday), it's in billboard now!
+  if (dates.some(dStr => dStr <= currentWedStr)) {
+    return { type: 'cartelera', label: 'En cartelera', className: 'is-cartelera' };
+  }
+
+  // Upcoming Thursday (this week's official premiere day)
+  const daysUntilThu = ((4 - day + 7) % 7) || 7;
+  const nextThuStr = new Date(dt.getTime() + daysUntilThu * 86400000).toISOString().slice(0, 10);
+  const firstDate = dates[0];
+
+  // If earliest date debuts this upcoming Thursday, it is this week's Estreno
+  if (firstDate <= nextThuStr) {
+    return { type: 'estreno', label: 'Estreno', className: 'is-estreno' };
+  }
+
+  // If earliest date is in future weeks beyond this Thursday, it is a true Anticipada pre-sale
+  return { type: 'anticipada', label: 'Anticipada', className: 'is-anticipada' };
 }
 
 // Application State
@@ -981,7 +998,7 @@ function renderBillboard() {
   if (isAllWeek) {
     // Pure Poster Catalog View: only poster + overlay badge + title
     processedMovies.forEach((movie, idx) => {
-      const isInCartelera = isMovieInCurrentCinemaWeek(movie, state.currentData && state.currentData.todayDate);
+      const badgeInfo = getMovieBadgeInfo(movie, state.currentData && state.currentData.todayDate);
       const imgPriorityAttr = idx < 4 ? 'fetchpriority="high"' : 'loading="lazy"';
       const card = document.createElement('article');
       card.className = 'movie-card-catalog';
@@ -999,8 +1016,8 @@ function renderBillboard() {
                ${imgPriorityAttr}
                decoding="async"
                onerror="this.onerror=null; this.src='/icon.svg';">
-          <span class="poster-badge ${isInCartelera ? 'is-cartelera' : 'is-anticipada'}">
-            ${isInCartelera ? 'En cartelera' : 'Anticipada'}
+          <span class="poster-badge ${badgeInfo.className}">
+            ${badgeInfo.label}
           </span>
         </div>
         <div class="catalog-info-wrapper">
@@ -2057,18 +2074,17 @@ function updateStats(moviesCount, functionsCount, otherCount = 0, processedMovie
     const movieWord = moviesCount === 1 ? 'película' : 'películas';
     const list = Array.isArray(processedMovies) ? processedMovies : [];
     const todayStr = state.currentData ? state.currentData.todayDate : '';
-    const carteleraCount = list.filter(m => isMovieInCurrentCinemaWeek(m, todayStr)).length;
-    const anticipadasCount = list.filter(m => !isMovieInCurrentCinemaWeek(m, todayStr)).length;
 
-    let countDetail = '';
-    if (carteleraCount > 0 && anticipadasCount > 0) {
-      countDetail = `${moviesCount} ${movieWord} (${carteleraCount} en cartelera, ${anticipadasCount} ${anticipadasCount === 1 ? 'anticipada' : 'anticipadas'})`;
-    } else if (anticipadasCount > 0) {
-      countDetail = `${moviesCount} ${movieWord} anticipadas`;
-    } else {
-      countDetail = `${moviesCount} ${movieWord} en cartelera`;
-    }
+    const carteleraCount = list.filter(m => getMovieBadgeInfo(m, todayStr).type === 'cartelera').length;
+    const estrenosCount = list.filter(m => getMovieBadgeInfo(m, todayStr).type === 'estreno').length;
+    const anticipadasCount = list.filter(m => getMovieBadgeInfo(m, todayStr).type === 'anticipada').length;
 
+    const parts = [];
+    if (carteleraCount > 0) parts.push(`${carteleraCount} en cartelera`);
+    if (estrenosCount > 0) parts.push(`${estrenosCount} ${estrenosCount === 1 ? 'estreno' : 'estrenos'}`);
+    if (anticipadasCount > 0) parts.push(`${anticipadasCount} ${anticipadasCount === 1 ? 'anticipada' : 'anticipadas'}`);
+
+    const countDetail = parts.length > 0 ? `${moviesCount} ${movieWord} (${parts.join(', ')})` : `${moviesCount} ${movieWord}`;
     countEl.textContent = `${countDetail} • Tocá una película para ver horarios`;
     return;
   }
@@ -2097,9 +2113,15 @@ function renderCinemaDropdown() {
   const label = document.getElementById('currentCinemaName');
   if (!menu) return;
 
-  const cinemas = (state.availableCinemas && state.availableCinemas.length > 0)
-    ? state.availableCinemas
-    : CINEMAS_FALLBACK;
+  const baseCinemas = (state.availableCinemas && state.availableCinemas.length > 0)
+    ? [...state.availableCinemas]
+    : [...CINEMAS_FALLBACK];
+
+  const anyOption = CINEMAS_FALLBACK.find(c => String(c.id) === 'all');
+  if (anyOption && !baseCinemas.some(c => String(c.id) === 'all')) {
+    baseCinemas.push(anyOption);
+  }
+  const cinemas = baseCinemas;
 
   const current = cinemas.find(c => String(c.id) === String(state.selectedCinema)) || cinemas[0];
   if (label) {
@@ -2150,7 +2172,9 @@ function selectCinema(cinemaId, updateHistory = true) {
   const cinemas = (state.availableCinemas && state.availableCinemas.length > 0)
     ? state.availableCinemas
     : CINEMAS_FALLBACK;
-  const cinemaObj = cinemas.find(c => String(c.id) === String(cinemaId)) || CINEMAS_FALLBACK[0];
+  const cinemaObj = cinemas.find(c => String(c.id) === String(cinemaId))
+    || CINEMAS_FALLBACK.find(c => String(c.id) === String(cinemaId))
+    || CINEMAS_FALLBACK[0];
 
   if (updateHistory && cinemaObj && cinemaObj.slug) {
     const targetPath = `/${cinemaObj.slug}`;
@@ -2639,7 +2663,8 @@ function setupEventListeners() {
       const cinemas = (state.availableCinemas && state.availableCinemas.length > 0)
         ? state.availableCinemas
         : CINEMAS_FALLBACK;
-      const cinema = cinemas.find(c => c.slug === slug);
+      const cinema = cinemas.find(c => c.slug === slug)
+        || CINEMAS_FALLBACK.find(c => c.slug === slug);
       if (cinema && String(cinema.id) !== String(state.selectedCinema)) {
         selectCinema(cinema.id, true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
