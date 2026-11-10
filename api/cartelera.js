@@ -167,15 +167,6 @@ async function getActiveFilmIds(cinemaId = 14) {
   } catch (err) {
     console.warn('Showcase homepage scraper error:', err.message);
   }
-  
-  // Source 3: Safe fallback of known film IDs (including latest films)
-  const fallback = [
-    6302, 6300, 6299, 6298, 6297, 6296, 6295, 6291, 6278, 6277,
-    6276, 6275, 6255, 6252, 6251, 6250, 6236, 6234, 6220, 6209,
-    6203, 6194, 6191, 6177, 6156, 6154, 6137, 6102, 6101, 6083,
-    6082, 6079, 6060, 5984, 5927, 5875
-  ];
-  fallback.forEach(id => ids.add(id));
 
   return Array.from(ids);
 }
