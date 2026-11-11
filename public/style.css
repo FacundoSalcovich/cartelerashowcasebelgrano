@@ -41,8 +41,8 @@
   --badge-date-bg: #182f5c;
   --badge-date-color: #e2edff;
   --catalog-badge-cartelera-bg: rgba(32, 72, 145, 0.95);
-  --catalog-badge-estreno-bg: rgba(5, 150, 105, 0.95);
-  --catalog-badge-anticipada-bg: rgba(245, 158, 11, 0.95);
+  --catalog-badge-estreno-bg: rgba(229, 9, 20, 0.95);
+  --catalog-badge-anticipada-bg: rgba(130, 9, 191, 0.95);
   --card-hover-shadow: 0 8px 26px rgba(2, 6, 16, 0.7);
 
   --radius-xs: 4px;
@@ -955,8 +955,6 @@ button, input, select {
   cursor: pointer;
   height: 100%; /* Equal height cards */
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
-  content-visibility: auto;
-  contain-intrinsic-size: auto 240px;
 }
 
 .movie-card:hover {
@@ -2172,27 +2170,27 @@ a[aria-disabled="true"] {
 
 .movie-grid.is-catalog-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
 @media (min-width: 600px) {
   .movie-grid.is-catalog-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 18px;
   }
 }
 
 @media (min-width: 900px) {
   .movie-grid.is-catalog-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 20px;
   }
 }
 
 @media (min-width: 1200px) {
   .movie-grid.is-catalog-grid {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 22px;
   }
 }
@@ -2209,8 +2207,6 @@ a[aria-disabled="true"] {
   position: relative;
   -webkit-tap-highlight-color: transparent;
   outline: none;
-  content-visibility: auto;
-  contain-intrinsic-size: auto 340px;
 }
 
 .movie-card-catalog:hover {

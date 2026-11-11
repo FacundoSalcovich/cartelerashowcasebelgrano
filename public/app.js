@@ -114,7 +114,21 @@ function getMovieBadgeInfo(movie, todayDateStr) {
 
 // Application State
 const state = {
-  selectedDate: null,
+  selectedDate: (() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlView = params.get('view');
+      const urlDate = params.get('date');
+      if (urlView === 'all' || urlDate === 'all') return 'all';
+      if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) return urlDate;
+
+      const savedView = sessionStorage.getItem('cartelera_view');
+      if (savedView === 'all') return 'all';
+      const savedDate = sessionStorage.getItem('cartelera_date');
+      if (savedDate && /^\d{4}-\d{2}-\d{2}$/.test(savedDate)) return savedDate;
+    } catch {}
+    return null;
+  })(),
   lastActiveDate: null, // Remembers last active day when toggling to/from catalog mode
   selectedCinema: (() => {
     try {
@@ -392,8 +406,28 @@ function renderDateTabs(publishedDates) {
   if (!state.selectedDate) {
     state.selectedDate = todayArStr;
   }
+  if (state.selectedDate !== 'all' && state.selectedDate < todayArStr) {
+    state.selectedDate = todayArStr;
+  }
   if (state.selectedDate !== 'all') {
     state.lastActiveDate = state.selectedDate;
+  }
+
+  // Synchronize segmented controls with current state.selectedDate
+  const modeDateBtn = document.getElementById('modeDateBtn');
+  const modeAllBtn = document.getElementById('modeAllBtn');
+  const datesNavWrapper = document.getElementById('datesNavWrapper');
+  const isAll = Boolean(state.selectedDate === 'all');
+  if (modeDateBtn && modeAllBtn) {
+    modeDateBtn.classList.toggle('is-active', !isAll);
+    modeDateBtn.setAttribute('aria-selected', !isAll ? 'true' : 'false');
+    modeDateBtn.setAttribute('tabindex', !isAll ? '0' : '-1');
+    modeAllBtn.classList.toggle('is-active', isAll);
+    modeAllBtn.setAttribute('aria-selected', isAll ? 'true' : 'false');
+    modeAllBtn.setAttribute('tabindex', isAll ? '0' : '-1');
+  }
+  if (datesNavWrapper) {
+    datesNavWrapper.style.display = isAll ? 'none' : '';
   }
 
   container.innerHTML = '';
@@ -454,6 +488,14 @@ function selectDate(dateIso, clickedBtn) {
   }
 
   state.selectedDate = dateIso;
+  try {
+    if (dateIso === 'all') {
+      sessionStorage.setItem('cartelera_view', 'all');
+    } else {
+      sessionStorage.setItem('cartelera_view', 'date');
+      sessionStorage.setItem('cartelera_date', dateIso);
+    }
+  } catch {}
   if (previousIsAll !== isAll) {
     state._modeSwitched = true;
     window.scrollTo(0, 0);
