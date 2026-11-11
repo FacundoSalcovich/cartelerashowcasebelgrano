@@ -1047,7 +1047,7 @@ function renderBillboard() {
       card.dataset.movieId = movie.id;
       card.setAttribute('role', 'button');
       card.setAttribute('tabindex', '0');
-      card.setAttribute('aria-label', `${movie.title} - Ver detalles y horarios`);
+      card.setAttribute('aria-label', `${badgeInfo.label}: ${movie.title} - Ver detalles y horarios`);
       card.innerHTML = `
         <div class="catalog-poster-wrapper">
           <img src="${movie.poster}" 
@@ -2166,8 +2166,13 @@ function renderCinemaDropdown() {
   const cinemas = baseCinemas;
 
   const current = cinemas.find(c => String(c.id) === String(state.selectedCinema)) || cinemas[0];
+  const shortName = current.shortName || current.name;
   if (label) {
-    label.textContent = current.shortName || current.name;
+    label.textContent = shortName;
+  }
+  const cinemaBtn = document.getElementById('cinemaSelectorBtn');
+  if (cinemaBtn) {
+    cinemaBtn.setAttribute('aria-label', `Seleccionar complejo Showcase: ${shortName}`);
   }
 
   menu.innerHTML = cinemas.map(c => {

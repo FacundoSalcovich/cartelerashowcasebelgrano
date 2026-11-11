@@ -41,7 +41,7 @@
   --badge-date-bg: #182f5c;
   --badge-date-color: #e2edff;
   --catalog-badge-cartelera-bg: rgba(32, 72, 145, 0.95);
-  --catalog-badge-estreno-bg: rgba(229, 9, 20, 0.95);
+  --catalog-badge-estreno-bg: #ffffff;
   --catalog-badge-anticipada-bg: rgba(130, 9, 191, 0.95);
   --card-hover-shadow: 0 8px 26px rgba(2, 6, 16, 0.7);
 
@@ -917,7 +917,7 @@ button, input, select {
 
 .stats-disclaimer {
   font-size: 11px;
-  color: #636b79;
+  color: #94a3b8;
 }
 
 /* ==========================================================================
@@ -934,6 +934,7 @@ button, input, select {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   align-items: stretch; /* Cards in each row expand to equal height, eliminating empty row gaps */
+  min-height: 480px;
 }
 
 @media (max-width: 900px) {
@@ -2267,7 +2268,8 @@ a[aria-disabled="true"] {
 
 .poster-badge.is-estreno {
   background-color: var(--catalog-badge-estreno-bg);
-  color: #ffffff;
+  color: #000000;
+  font-weight: 800;
   border: none;
 }
 
