@@ -920,10 +920,32 @@ function renderBillboard() {
     }
   }
 
-  // Alphabetical sort (A-Z) by movie title
-  processedMovies.sort((a, b) => {
-    return a.title.localeCompare(b.title, 'es', { sensitivity: 'base' });
-  });
+  // Sort movies: in Catalog View ("Todas las películas"), prioritize Anticipadas -> Estrenos -> En cartelera (A-Z within each)
+  if (isAllWeek) {
+    const todayStr = state.currentData ? state.currentData.todayDate : '';
+    const categoryPriority = {
+      anticipada: 1,
+      estreno: 2,
+      cartelera: 3
+    };
+
+    processedMovies.sort((a, b) => {
+      const typeA = getMovieBadgeInfo(a, todayStr).type;
+      const typeB = getMovieBadgeInfo(b, todayStr).type;
+      const rankA = categoryPriority[typeA] || 99;
+      const rankB = categoryPriority[typeB] || 99;
+
+      if (rankA !== rankB) {
+        return rankA - rankB;
+      }
+      return a.title.localeCompare(b.title, 'es', { sensitivity: 'base' });
+    });
+  } else {
+    // Alphabetical sort (A-Z) by movie title in Day View
+    processedMovies.sort((a, b) => {
+      return a.title.localeCompare(b.title, 'es', { sensitivity: 'base' });
+    });
+  }
 
   // Check for matching movies in other days of the week when searching
   const otherWeekMovies = state.currentData.otherWeekMovies || [];
