@@ -962,8 +962,8 @@ function renderBillboard() {
   // Update statistics banner with clearly separated states
   updateStats(processedMovies.length, totalAvailableFunctions, processedOtherMovies.length, processedMovies);
 
-  // Clear, contextual empty states
-  if (processedMovies.length === 0) {
+  // Clear, contextual empty states (including late night when all functions for today already started/ended)
+  if (processedMovies.length === 0 || (isToday && totalAvailableFunctions === 0 && !query)) {
     if (query) {
       if (processedOtherMovies.length > 0) {
         container.innerHTML = `
@@ -1030,10 +1030,15 @@ function renderBillboard() {
               ${ICONS.clock}
             </div>
             <h3 class="state-title">Ya no quedan funciones por hoy</h3>
-            <p class="state-desc">Todas las funciones programadas para el día de hoy ya comenzaron o finalizaron. Podés consultar la cartelera de mañana.</p>
-            <button type="button" class="btn-secondary" onclick="selectTomorrow()" style="margin-top: 8px;">
-              Ver funciones de mañana
-            </button>
+            <p class="state-desc">Todas las funciones programadas para el día de hoy ya comenzaron o finalizaron por el horario nocturno. Podés consultar la cartelera de mañana o ver el catálogo completo.</p>
+            <div style="display: flex; gap: 8px; justify-content: center; margin-top: 10px; flex-wrap: wrap;">
+              <button type="button" class="btn-primary" onclick="selectTomorrow()">
+                Ver funciones de mañana
+              </button>
+              <button type="button" class="btn-secondary" onclick="document.getElementById('modeAllBtn').click()">
+                Ver todas las películas
+              </button>
+            </div>
           </div>
         `;
       } else {
